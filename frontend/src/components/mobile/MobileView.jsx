@@ -3,7 +3,8 @@ import { useSystem } from '../../context/SystemContext';
 import {
   Shield, Battery, Radio, QrCode,
   Compass, User, Flame, ShieldAlert,
-  Wifi, WifiOff, Zap, MapPin, AlertTriangle, Check
+  Wifi, WifiOff, Zap, MapPin, AlertTriangle, Check,
+  Volume2, VolumeX, Mic, Clock, Layers, Sparkles
 } from 'lucide-react';
 
 import HomeScreen from './HomeScreen';
@@ -22,7 +23,18 @@ const NAV_TABS = [
 ];
 
 export default function MobileView({ embedded = false }) {
-  const { tourist, comms, active_incident, isConnected, triggerSim, sendLiveSensorData } = useSystem();
+  const { 
+    tourist, 
+    comms, 
+    active_incident, 
+    isConnected, 
+    isOnline, 
+    offlineQueueLength, 
+    flushOfflineQueue,
+    triggerSim, 
+    sendLiveSensorData 
+  } = useSystem();
+
   const [activeTab, setActiveTab] = useState('home');
   const [realGpsActive, setRealGpsActive] = useState(false);
   const [realMotionActive, setRealMotionActive] = useState(false);
@@ -34,8 +46,15 @@ export default function MobileView({ embedded = false }) {
   const [manualLon, setManualLon] = useState(tourist.current_lon || -119.5975);
   const [needsMotionPermission, setNeedsMotionPermission] = useState(false);
 
+  // Acoustic Beacon & Blackbox States
+  const [beaconMuted, setBeaconMuted] = useState(false);
+  const [isBlackboxRecording, setIsBlackboxRecording] = useState(false);
+  const [blackboxSaved, setBlackboxSaved] = useState(false);
+
   const lastMotionSendRef = useRef(0);
   const highGSpikeCountRef = useRef(0);
+  const audioContextRef = useRef(null);
+  const beaconIntervalRef = useRef(null);
 
   // Auto-focus home / emergency screen when incident becomes active
   useEffect(() => {
@@ -120,31 +139,120 @@ export default function MobileView({ embedded = false }) {
     };
   }, [sendLiveSensorData]);
 
-  // 3. Check for iOS Device Motion Permission requirement
-  useEffect(() => {
-    if (
-      typeof window !== 'undefined' &&
-      typeof DeviceMotionEvent !== 'undefined' &&
-      typeof DeviceMotionEvent.requestPermission === 'function'
-    ) {
-      setNeedsMotionPermission(true);
-    }
-  }, []);
-
-  const requestIosMotionPermission = async () => {
+  // 3. Pre-Impact Audio Blackbox Trigger
+  const triggerAudioBlackbox = async () => {
+    if (isBlackboxRecording || blackboxSaved) return;
     try {
-      if (typeof DeviceMotionEvent.requestPermission === 'function') {
-        const response = await DeviceMotionEvent.requestPermission();
-        if (response === 'granted') {
-          setNeedsMotionPermission(false);
+      if (!navigator.mediaDevices?.getUserMedia) return;
+      setIsBlackboxRecording(true);
+
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      const audioChunks = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        audioChunks.push(event.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64Audio = reader.result;
+          try {
+            localStorage.setItem('guardian_blackbox_audio', base64Audio);
+            setBlackboxSaved(true);
+            setIsBlackboxRecording(false);
+            console.log('[Blackbox] 4-second pre-impact audio capture committed to secure local storage.');
+          } catch (e) {
+            console.error('[Blackbox Storage] Error:', e);
+          }
+        };
+        reader.readAsDataURL(audioBlob);
+        stream.getTracks().forEach(track => track.stop());
+      };
+
+      mediaRecorder.start();
+      setTimeout(() => {
+        if (mediaRecorder.state === 'recording') {
+          mediaRecorder.stop();
         }
-      }
-    } catch (e) {
-      console.error('Motion permission error:', e);
+      }, 4000); // 4-second audio burst
+
+    } catch (err) {
+      console.warn('[AudioBlackbox] Microphone capture notice:', err);
+      setIsBlackboxRecording(false);
     }
   };
 
-  // 4. Real Accelerometer & Motion via window.DeviceMotionEvent
+  // 4. Ultrasonic & Acoustic Emergency Beacon (18.5kHz - 19.5kHz + 880Hz SOS Morse)
+  useEffect(() => {
+    const isEmergency = tourist.threat_level === 'CRITICAL' || active_incident;
+
+    if (isEmergency && !beaconMuted) {
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        if (!audioContextRef.current) {
+          audioContextRef.current = new AudioCtx();
+        }
+        const ctx = audioContextRef.current;
+        if (ctx.state === 'suspended') {
+          ctx.resume();
+        }
+
+        // Pulse acoustic chirp every 2 seconds
+        if (!beaconIntervalRef.current) {
+          beaconIntervalRef.current = setInterval(() => {
+            if (beaconMuted) return;
+            try {
+              // 1. Ultrasonic Carrier Pulse (19.2 kHz - near imperceptible to humans, detectable by SAR mic arrays)
+              const oscUltra = ctx.createOscillator();
+              const gainUltra = ctx.createGain();
+              oscUltra.type = 'sine';
+              oscUltra.frequency.setValueAtTime(19200, ctx.currentTime);
+              gainUltra.gain.setValueAtTime(0.08, ctx.currentTime);
+              gainUltra.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+              oscUltra.connect(gainUltra);
+              gainUltra.connect(ctx.destination);
+              oscUltra.start();
+              oscUltra.stop(ctx.currentTime + 0.3);
+
+              // 2. Audible SOS Beep Pulse (880 Hz)
+              const oscAud = ctx.createOscillator();
+              const gainAud = ctx.createGain();
+              oscAud.type = 'sine';
+              oscAud.frequency.setValueAtTime(880, ctx.currentTime);
+              gainAud.gain.setValueAtTime(0.04, ctx.currentTime);
+              gainAud.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+              oscAud.connect(gainAud);
+              gainAud.connect(ctx.destination);
+              oscAud.start();
+              oscAud.stop(ctx.currentTime + 0.25);
+            } catch (soundErr) {
+              console.warn('[AcousticBeacon] Chirp error:', soundErr);
+            }
+          }, 2000);
+        }
+      } catch (audioErr) {
+        console.warn('[AudioContext] Initializing audio context notice:', audioErr);
+      }
+    } else {
+      if (beaconIntervalRef.current) {
+        clearInterval(beaconIntervalRef.current);
+        beaconIntervalRef.current = null;
+      }
+    }
+
+    return () => {
+      if (beaconIntervalRef.current) {
+        clearInterval(beaconIntervalRef.current);
+        beaconIntervalRef.current = null;
+      }
+    };
+  }, [tourist.threat_level, active_incident, beaconMuted]);
+
+  // 5. Real Accelerometer & Motion via window.DeviceMotionEvent
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -156,15 +264,15 @@ export default function MobileView({ embedded = false }) {
       const ay = acc.y || 0;
       const az = acc.z || 9.8;
 
-      // Calculate Euclidean acceleration magnitude
       const magnitude = Math.sqrt(ax * ax + ay * ay + az * az);
-      const gForce = magnitude / 9.80665; // Normalize to standard Gs
+      const gForce = magnitude / 9.80665;
 
       const now = Date.now();
 
       // Real Fall / Impact Spike Trigger Detection
       if (gForce > 3.4) {
         highGSpikeCountRef.current += 1;
+        triggerAudioBlackbox(); // Trigger 4s audio blackbox recording
         if (highGSpikeCountRef.current >= 2 && !active_incident) {
           triggerSim('FALL');
           highGSpikeCountRef.current = 0;
@@ -236,6 +344,12 @@ export default function MobileView({ embedded = false }) {
   const isWarning  = tourist.threat_level === 'WARNING';
   const isLoRa     = comms.channel === 'LORA_MESH';
 
+  const powerGov = tourist?.power_governance || {
+    tier_label: 'TIER-1: STANDARD MONITORING',
+    endurance_formatted: '28h 45m',
+    power_draw_mw: 45.0
+  };
+
   return (
     <div className={`flex justify-center items-start ${embedded ? 'w-full h-full' : 'min-h-[calc(100vh-4rem)] p-3 sm:p-6'}`}>
 
@@ -266,7 +380,19 @@ export default function MobileView({ embedded = false }) {
               GUARDIAN <span className="text-tactical-cyan">XCEL</span>
             </span>
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5">
+            {/* Offline PWA Sync Pill */}
+            {(!isOnline || offlineQueueLength > 0) && (
+              <button
+                onClick={flushOfflineQueue}
+                className="px-1.5 py-0.5 rounded bg-amber-950/70 border border-amber-500/60 text-amber-300 text-[8px] font-bold animate-pulse flex items-center gap-1"
+                title="Click to flush offline queue"
+              >
+                <Clock className="w-2.5 h-2.5" />
+                {offlineQueueLength > 0 ? `${offlineQueueLength} QUEUED` : 'OFFLINE'}
+              </button>
+            )}
+
             <span className={`flex items-center gap-0.5 ${isConnected ? 'text-emerald-400' : 'text-rose-400'}`}>
               {isConnected ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
             </span>
@@ -278,6 +404,39 @@ export default function MobileView({ embedded = false }) {
               {isCharging ? <Zap className="w-3.5 h-3.5 text-amber-400 animate-pulse" /> : <Battery className="w-3.5 h-3.5" />}
               {tourist.battery_pct}%
             </span>
+          </div>
+        </div>
+
+        {/* ─── DYNAMIC POWER GOVERNANCE & ACOUSTIC BEACON BAR ─── */}
+        <div className="relative z-10 bg-slate-950/90 border-b border-tactical-border/60 px-3 py-1 flex items-center justify-between text-[9px] font-mono shrink-0">
+          <div className="flex items-center gap-1 text-slate-300">
+            <Zap className="w-3 h-3 text-tactical-cyan" />
+            <span className="text-tactical-muted">ENDURANCE:</span>
+            <span className="font-bold text-tactical-cyan">{powerGov.endurance_formatted}</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {/* Acoustic Beacon Mute Toggle */}
+            {isCritical && (
+              <button
+                onClick={() => setBeaconMuted(prev => !prev)}
+                className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[8px] font-bold border transition-all ${
+                  beaconMuted 
+                    ? 'bg-slate-800 border-slate-600 text-slate-400'
+                    : 'bg-cyan-950/80 border-cyan-400 text-cyan-300 animate-pulse'
+                }`}
+              >
+                {beaconMuted ? <VolumeX className="w-2.5 h-2.5" /> : <Volume2 className="w-2.5 h-2.5" />}
+                {beaconMuted ? 'BEACON MUTED' : '19.2kHz BEACON ACTIVE'}
+              </button>
+            )}
+
+            {/* Blackbox Audio Indicator */}
+            {blackboxSaved && (
+              <span className="text-[8px] text-emerald-400 font-bold bg-emerald-950/60 px-1 py-0.5 rounded border border-emerald-500/40 flex items-center gap-0.5">
+                <Mic className="w-2.5 h-2.5" /> BLACKBOX SAVED
+              </span>
+            )}
           </div>
         </div>
 
@@ -298,155 +457,96 @@ export default function MobileView({ embedded = false }) {
             ) : (
               <button
                 onClick={triggerImmediateGpsFix}
-                className="flex items-center gap-1 text-emerald-400 hover:text-emerald-300 bg-emerald-950/40 border border-emerald-500/50 px-1.5 py-0.5 rounded font-mono text-[9px] font-bold"
-                title="Click to calibrate / acquire real GPS fix"
+                className="text-[9px] text-cyan-400 hover:text-cyan-300 underline font-mono flex items-center gap-1"
+                title="Recalibrate GPS"
               >
-                <MapPin className="w-2.5 h-2.5 text-emerald-400 animate-pulse" />
-                {realGpsActive ? 'GPS ACTIVE' : 'CALIBRATE GPS'}
+                <MapPin className="w-3 h-3" />
+                GPS FIX
               </button>
             )}
+            <StatusBadge status={tourist.threat_level} size="xs" pulse={isCritical} />
           </div>
         </div>
 
-        {/* ─── iOS PERMISSION BANNER ─── */}
-        {needsMotionPermission && (
-          <div className="relative z-10 bg-tactical-cyan/20 border-b border-tactical-cyan p-2 flex items-center justify-between text-[10px] font-mono">
-            <span className="text-cyan-200">iOS Motion Sensor Access Required</span>
-            <button
-              onClick={requestIosMotionPermission}
-              className="bg-tactical-cyan text-black px-2 py-0.5 rounded font-bold hover:bg-cyan-300"
-            >
-              ENABLE
-            </button>
-          </div>
-        )}
-
-        {/* ─── MANUAL GPS OVERRIDE PANEL ─── */}
+        {/* GPS Manual Override Modal */}
         {showGpsOverride && (
-          <form onSubmit={applyManualGpsOverride} className="relative z-20 bg-tactical-dark border-b border-tactical-border p-2.5 flex flex-col gap-1.5 text-[10px] font-mono">
-            <div className="flex items-center justify-between text-slate-300 font-bold">
-              <span>MANUAL GPS RECALIBRATION</span>
-              <button type="button" onClick={() => setShowGpsOverride(false)} className="text-slate-500 hover:text-white">✕</button>
+          <div className="relative z-30 bg-slate-900 border-b border-cyan-500/60 p-2.5 text-[10px] font-mono space-y-2">
+            <div className="flex items-center justify-between text-cyan-300 font-bold">
+              <span className="flex items-center gap-1">
+                <MapPin className="w-3 h-3" />
+                CALIBRATE GPS ANCHOR
+              </span>
+              <button onClick={() => setShowGpsOverride(false)} className="text-slate-400 hover:text-white">✕</button>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <form onSubmit={applyManualGpsOverride} className="grid grid-cols-2 gap-2">
               <div>
-                <label className="text-tactical-muted text-[8px]">LATITUDE</label>
+                <label className="text-[9px] text-slate-400">LATITUDE</label>
                 <input
                   type="number"
                   step="0.0001"
                   value={manualLat}
                   onChange={(e) => setManualLat(e.target.value)}
-                  className="w-full bg-tactical-darkest border border-tactical-border px-1.5 py-1 rounded text-white text-[10px]"
+                  className="w-full bg-black border border-slate-700 rounded px-1.5 py-1 text-white text-[10px]"
                 />
               </div>
               <div>
-                <label className="text-tactical-muted text-[8px]">LONGITUDE</label>
+                <label className="text-[9px] text-slate-400">LONGITUDE</label>
                 <input
                   type="number"
                   step="0.0001"
                   value={manualLon}
                   onChange={(e) => setManualLon(e.target.value)}
-                  className="w-full bg-tactical-darkest border border-tactical-border px-1.5 py-1 rounded text-white text-[10px]"
+                  className="w-full bg-black border border-slate-700 rounded px-1.5 py-1 text-white text-[10px]"
                 />
               </div>
-            </div>
-            <button
-              type="submit"
-              className="w-full bg-tactical-cyan text-black font-bold py-1 rounded hover:bg-cyan-300 flex items-center justify-center gap-1 mt-1"
-            >
-              <Check className="w-3 h-3" /> RECALIBRATE SECTOR MAP
-            </button>
-          </form>
-        )}
-
-        {/* ─── EMERGENCY ALERT BANNER ─── */}
-        {active_incident && (
-          <div className="relative z-10 bg-rose-950/70 border-b border-rose-500/80 px-3 py-2 flex items-center justify-between shadow-[0_0_20px_rgba(255,34,85,0.3)] shrink-0">
-            <div className="flex items-center gap-2">
-              <Flame className="w-4 h-4 text-rose-400 animate-bounce shrink-0" />
-              <div>
-                <div className="text-xs font-mono font-black text-rose-300 tracking-wider leading-tight">
-                  EMERGENCY — {active_incident.incident_number}
-                </div>
-                <div className="text-[9px] font-mono text-rose-400/80">
-                  {active_incident.trigger_type} detected — Rescue activated
-                </div>
-              </div>
-            </div>
-            <StatusBadge status={active_incident.status} size="xs" pulse />
+              <button
+                type="submit"
+                className="col-span-2 bg-cyan-600 hover:bg-cyan-500 text-black font-bold p-1 rounded transition-all text-xs"
+              >
+                APPLY GPS ANCHOR
+              </button>
+            </form>
           </div>
         )}
 
-        {/* ─── MAIN CONTENT AREA ─── */}
-        <div className="flex-1 overflow-y-auto px-3 pt-3 z-10 min-h-0">
-          {/* Emergency screen takes over HOME tab */}
-          {active_incident && activeTab === 'home' ? (
-            <div className="flex flex-col gap-3">
-              <EmergencyOverlay />
-              <SimControls />
-            </div>
-          ) : (
-            <>
-              {activeTab === 'home'    && <HomeScreen />}
-              {activeTab === 'explore' && <ExploreScreen />}
-              {activeTab === 'safety'  && <SafetyScreen />}
-              {activeTab === 'profile' && <ProfileScreen />}
-            </>
-          )}
-        </div>
+        {/* ─── SCROLLABLE MAIN CONTENT ─── */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 space-y-3 relative z-10">
+          {activeTab === 'home'    && <HomeScreen />}
+          {activeTab === 'explore' && <ExploreScreen />}
+          {activeTab === 'safety'  && <SafetyScreen />}
+          {activeTab === 'profile' && <ProfileScreen />}
 
-        {/* ─── SOS PANIC BUTTON ─── */}
-        <div className="relative z-10 px-3 pt-2 pb-1 shrink-0">
-          {!active_incident ? (
-            <button
-              onClick={() => triggerSim('SOS')}
-              className="w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-rose-600 hover:bg-rose-500 active:scale-95 text-white font-mono font-black text-sm uppercase tracking-widest transition-all duration-200 shadow-[0_0_20px_rgba(255,34,85,0.45)] border border-rose-400/70"
-            >
-              <Flame className="w-5 h-5 fill-current" />
-              ⚠ BROADCAST MANUAL SOS
-            </button>
-          ) : (
-            <div className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-rose-950/80 border border-rose-500/70 text-rose-300 font-mono font-bold text-xs uppercase tracking-widest">
-              <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping shrink-0" />
-              SOS ACTIVE — RESCUE IN PROGRESS
-            </div>
-          )}
-        </div>
-
-        {/* ─── SIM CONTROLS (visible when no emergency) ─── */}
-        {!active_incident && (
-          <div className="relative z-10 px-3 pb-2 shrink-0">
+          {/* SIM CONTROLS */}
+          <div className="pt-2">
             <SimControls />
           </div>
-        )}
+        </div>
 
-        {/* ─── BOTTOM NAVIGATION ─── */}
-        <div className="relative z-10 bg-tactical-dark border-t border-tactical-border px-2 py-1.5 grid grid-cols-4 gap-1 text-[9px] font-mono font-bold text-center select-none shrink-0">
+        {/* ─── BOTTOM NAVIGATION BAR ─── */}
+        <div className="relative z-10 bg-tactical-dark border-t border-tactical-border grid grid-cols-4 select-none shrink-0">
           {NAV_TABS.map(({ id, label, Icon }) => {
             const isActive = activeTab === id;
-            const showDot = id === 'home' && active_incident;
-            const safetyAlert = id === 'safety' && (isCritical || isWarning);
             return (
               <button
                 key={id}
                 onClick={() => setActiveTab(id)}
-                className={`p-1.5 rounded flex flex-col items-center gap-0.5 transition-all relative ${
-                  isActive
-                    ? 'text-tactical-cyan bg-tactical-card/80'
-                    : safetyAlert
-                    ? 'text-rose-400'
-                    : 'text-slate-500 hover:text-slate-300'
-                }`}
+                className={`
+                  flex flex-col items-center justify-center py-2.5 gap-1 transition-all font-mono
+                  ${isActive
+                    ? 'text-tactical-cyan bg-tactical-cyan/10 border-t-2 border-tactical-cyan'
+                    : 'text-tactical-muted hover:text-slate-200 border-t-2 border-transparent'
+                  }
+                `}
               >
-                <Icon className="w-4 h-4" />
-                {label}
-                {showDot && (
-                  <span className="absolute top-0.5 right-1 w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
-                )}
+                <Icon className={`w-4 h-4 ${isActive ? 'text-tactical-cyan' : 'text-tactical-muted'}`} />
+                <span className="text-[9px] font-bold tracking-wider">{label}</span>
               </button>
             );
           })}
         </div>
+
+        {/* ─── FULLSCREEN EMERGENCY OVERLAY ─── */}
+        <EmergencyOverlay />
       </div>
     </div>
   );

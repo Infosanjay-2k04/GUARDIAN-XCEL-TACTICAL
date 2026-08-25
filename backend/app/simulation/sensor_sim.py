@@ -45,8 +45,9 @@ class SensorSimulator:
 
     def tick(self) -> dict:
         """
-        Computes a realistic 5Hz telemetry sample and evaluates the mathematical Risk Engine:
+        Computes a realistic 5Hz telemetry sample, evaluates the mathematical Risk Engine:
         R = (0.35 * A_norm) + (0.25 * V_spike) + (0.15 * Delta_Orientation) + (0.15 * Signal_Loss) + (0.10 * Battery_Critical)
+        and computes the 3-Tier Dynamic Power Governance & Survival Endurance Estimate.
         """
         now = time.time()
         elapsed = now - self.start_time
@@ -160,6 +161,30 @@ class SensorSimulator:
             else:
                 threat_level = "NORMAL"
 
+        # === 3-TIER DYNAMIC POWER GOVERNANCE ===
+        if self.battery_pct > 50:
+            power_tier = "TIER_1_NORMAL"
+            tier_label = "TIER-1: STANDARD MONITORING"
+            sampling_rate_hz = 1.0
+            power_draw_mw = 45.0
+            endurance_hrs = (self.battery_pct / 100.0) * 48.0
+        elif self.battery_pct >= 15:
+            power_tier = "TIER_2_ACTIVE_ALERT"
+            tier_label = "TIER-2: HIGH-RES KINEMATIC STREAM"
+            sampling_rate_hz = 5.0
+            power_draw_mw = 260.0
+            endurance_hrs = (self.battery_pct / 100.0) * 16.0
+        else:
+            power_tier = "TIER_3_SURVIVAL_MODE"
+            tier_label = "TIER-3: SURVIVAL BEACONING (24-BYTE LORA)"
+            sampling_rate_hz = 0.05
+            power_draw_mw = 9.5
+            endurance_hrs = (self.battery_pct / 100.0) * 110.0
+
+        endurance_h = int(endurance_hrs)
+        endurance_m = int((endurance_hrs - endurance_h) * 60)
+        endurance_formatted = f"{endurance_h}h {endurance_m:02d}m"
+
         return {
             "accel_x": round(accel_x, 3),
             "accel_y": round(accel_y, 3),
@@ -178,6 +203,14 @@ class SensorSimulator:
                 "signal_loss": round(signal_loss, 3),
                 "battery_critical": round(battery_critical, 3),
                 "formula": "R = 0.35*A + 0.25*V + 0.15*Δθ + 0.15*Sig + 0.10*Bat"
+            },
+            "power_governance": {
+                "tier": power_tier,
+                "tier_label": tier_label,
+                "sampling_rate_hz": sampling_rate_hz,
+                "power_draw_mw": power_draw_mw,
+                "estimated_endurance_hours": round(endurance_hrs, 1),
+                "endurance_formatted": endurance_formatted
             }
         }
 

@@ -12,7 +12,7 @@ from app.simulation.lora_sim import lora_sim
 from app.simulation.uav_flight_sim import uav_sim
 from app.simulation.thermal_vision_sim import thermal_sim
 from app.simulation.ground_team_sim import rescue_sim
-from app.services.alert_dispatcher import dispatcher, departmental_engine
+from app.services.alert_dispatcher import dispatcher, departmental_engine, telegram_notifier
 from app.services.ugid_service import ugid_service, forensic_ledger
 
 # Initialize tables
@@ -579,8 +579,26 @@ class IncidentManager:
             db.add_all([ev1, ev2, ev3, ev4, ev5])
             db.commit()
             db.refresh(incident)
-            db.expunge(incident)
 
+            # Trigger Telegram Autonomous Dispatch
+            try:
+                loop = asyncio.get_event_loop()
+                if loop.is_running():
+                    loop.create_task(telegram_notifier.send_emergency_alert(
+                        incident={"incident_number": inc_num, "status": "CONFIRMED"},
+                        tourist={
+                            "ugid": ugid,
+                            "current_lat": tourist.current_lat,
+                            "current_lon": tourist.current_lon,
+                            "blood_type": tourist.blood_type or "O-POS",
+                            "medical_notes": tourist.medical_notes or "Penicillin Allergy (Severe)",
+                            "emergency_contact": tourist.emergency_contact or "+1 (555) 019-2834"
+                        }
+                    ))
+            except Exception as tg_err:
+                print(f"[Telegram Dispatch Warning] {tg_err}")
+
+            db.expunge(incident)
             return incident
         finally:
             db.close()

@@ -279,8 +279,51 @@ export function SystemProvider({ children }) {
   const [selectedUgid, setSelectedUgid] = useState('GX-8921-ALPHA');
   const [selectedDroneId, setSelectedDroneId] = useState('DRONE-01');
   const [isConnected, setIsConnected] = useState(false);
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
+  const [offlineQueue, setOfflineQueue] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('guardian_offline_queue') || '[]');
+    } catch {
+      return [];
+    }
+  });
   const [accelHistory, setAccelHistory] = useState([]);
   const wsRef = useRef(null);
+
+  const flushOfflineQueue = async () => {
+    try {
+      const stored = JSON.parse(localStorage.getItem('guardian_offline_queue') || '[]');
+      if (stored && stored.length > 0) {
+        console.log(`[OfflineSync] Flushing ${stored.length} buffered telemetry frames to backend...`);
+        await api.syncOfflineTelemetry(stored);
+        localStorage.removeItem('guardian_offline_queue');
+        setOfflineQueue([]);
+      }
+    } catch (e) {
+      console.warn('[OfflineSync] Flush failed:', e);
+    }
+  };
+
+  useEffect(() => {
+    const handleOnline = () => {
+      console.log('[Network] Device transitioned to ONLINE. Triggering offline queue sync...');
+      setIsOnline(true);
+      flushOfflineQueue();
+    };
+
+    const handleOffline = () => {
+      console.warn('[Network] Device transitioned to OFFLINE / Airplane Mode. Telemetry buffered locally.');
+      setIsOnline(false);
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   useEffect(() => {
     let reconnectTimeout = null;
@@ -298,6 +341,7 @@ export function SystemProvider({ children }) {
       ws.onopen = () => {
         console.log('[SystemWS] Connected to Guardian Xcel Backend');
         setIsConnected(true);
+        flushOfflineQueue();
       };
 
       ws.onmessage = (event) => {
@@ -455,10 +499,25 @@ export function SystemProvider({ children }) {
   };
 
   const sendLiveSensorData = (sensorPayload) => {
-    sendWebSocketMessage({
-      action: 'LIVE_SENSOR_UPDATE',
-      ...sensorPayload
-    });
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      sendWebSocketMessage({
+        action: 'LIVE_SENSOR_UPDATE',
+        ...sensorPayload
+      });
+    } else {
+      // Buffer offline packet in local storage
+      try {
+        const stored = JSON.parse(localStorage.getItem('guardian_offline_queue') || '[]');
+        const updated = [...stored, {
+          ...sensorPayload,
+          timestamp: new Date().toISOString()
+        }].slice(-100);
+        localStorage.setItem('guardian_offline_queue', JSON.stringify(updated));
+        setOfflineQueue(updated);
+      } catch (err) {
+        console.error('[OfflineQueue] Storage error:', err);
+      }
+    }
   };
 
   return (
@@ -470,6 +529,9 @@ export function SystemProvider({ children }) {
         selectedDroneId,
         setSelectedDroneId,
         isConnected,
+        isOnline,
+        offlineQueueLength: offlineQueue.length,
+        flushOfflineQueue,
         accelHistory,
         triggerSim,
         sendLiveSensorData,

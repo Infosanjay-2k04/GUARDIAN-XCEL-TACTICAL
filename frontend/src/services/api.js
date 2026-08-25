@@ -77,3 +77,12 @@ export async function resetSystemDemo() {
   const res = await fetch(`${API_BASE}/demo/reset`, { method: 'POST' });
   return res.json();
 }
+
+export async function syncOfflineTelemetry(queue) {
+  const res = await fetch(`${API_BASE}/tourist/sync`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ugid: 'GX-8921-ALPHA', queue })
+  });
+  return res.json();
+}

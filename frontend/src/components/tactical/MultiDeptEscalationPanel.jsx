@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSystem } from '../../context/SystemContext';
-import { Shield, HeartPulse, Truck, Lock, CheckCircle2, Radio, Send, FileCode, AlertTriangle } from 'lucide-react';
+import { Shield, HeartPulse, Truck, Lock, CheckCircle2, Radio, Send, FileCode, AlertTriangle, Building2, Droplet, MessageSquare } from 'lucide-react';
 import StatusBadge from '../common/StatusBadge';
 
 export default function MultiDeptEscalationPanel() {
@@ -38,20 +38,38 @@ export default function MultiDeptEscalationPanel() {
     }
   };
 
+  const medMatch = departmental_dispatches?.medical_facility || {
+    matched_facility_name: 'Mercy Level-1 Regional Trauma Center',
+    trauma_tier: 'LEVEL-1 ICU COMPREHENSIVE',
+    distance_km: 4.2,
+    eta_minutes: 3.5,
+    blood_match_confirmed: true,
+    target_blood_group: 'O-POS',
+    reserved_units: 14,
+    icu_beds_available: 3,
+    bed_reservation_code: 'RES-MERCY-914-OPOS'
+  };
+
   const isEmergency = active_incident !== null && active_incident !== undefined;
 
   return (
     <div className="flex flex-col gap-2.5 font-mono text-[10px]">
-      {/* Header Banner */}
+      {/* Header Banner with Telegram & AES-256 Badge */}
       <div className="bg-tactical-card p-2 rounded border border-tactical-border/80 flex items-center justify-between">
         <div className="flex items-center gap-1.5 font-bold text-white">
           <Send className="w-3.5 h-3.5 text-tactical-cyan animate-pulse" />
           <span>MULTI-DEPARTMENT AUTONOMOUS ESCALATION</span>
         </div>
-        <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-950/60 border border-emerald-500/50 text-emerald-300 font-bold flex items-center gap-1">
-          <Lock className="w-2.5 h-2.5" />
-          AES-256 ENCRYPTED
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="text-[9px] px-1.5 py-0.5 rounded bg-blue-950/60 border border-blue-500/50 text-blue-300 font-bold flex items-center gap-1">
+            <MessageSquare className="w-2.5 h-2.5" />
+            TELEGRAM CLOUD NOTIFIER
+          </span>
+          <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-950/60 border border-emerald-500/50 text-emerald-300 font-bold flex items-center gap-1">
+            <Lock className="w-2.5 h-2.5" />
+            AES-256
+          </span>
+        </div>
       </div>
 
       {/* 1. Police Department Intercept Card */}
@@ -101,7 +119,7 @@ export default function MultiDeptEscalationPanel() {
         </div>
       </div>
 
-      {/* 2. Medical / Hospital Fast-Track Card */}
+      {/* 2. Medical / Hospital Fast-Track & Blood Bank Matching Card */}
       <div className={`p-2.5 rounded border transition-all ${
         isEmergency
           ? 'bg-rose-950/40 border-rose-500/80 shadow-[0_0_15px_rgba(255,34,85,0.25)]'
@@ -117,31 +135,51 @@ export default function MultiDeptEscalationPanel() {
               ? 'bg-rose-500/30 border border-rose-400 text-rose-200 animate-pulse' 
               : 'bg-slate-800 text-slate-400'
           }`}>
-            {isEmergency ? 'HOSPITAL ALERTED // BLOOD ATTACHED' : 'STANDBY'}
+            {isEmergency ? 'HOSPITAL ALERTED // BLOOD MATCHED' : 'STANDBY'}
           </span>
         </div>
 
-        <div className="pt-1.5 space-y-1 text-slate-300">
-          <div className="flex justify-between">
-            <span className="text-tactical-muted">Hospital Recipient:</span>
-            <span className="text-white font-bold">{dispatches.medical.hospital_recipient}</span>
+        <div className="pt-1.5 space-y-1.5 text-slate-300">
+          {/* Matched Facility Box */}
+          <div className="p-1.5 rounded bg-black/60 border border-rose-500/40 space-y-1">
+            <div className="flex items-center justify-between text-[9px] font-bold text-rose-300">
+              <span className="flex items-center gap-1">
+                <Building2 className="w-3 h-3 text-rose-400" />
+                {medMatch.matched_facility_name}
+              </span>
+              <span className="text-emerald-400 font-bold">{medMatch.trauma_tier}</span>
+            </div>
+            <div className="flex justify-between text-[9px]">
+              <span className="text-tactical-muted">Reservation Code:</span>
+              <code className="text-cyan-300 font-bold">{medMatch.bed_reservation_code}</code>
+            </div>
+            <div className="flex justify-between text-[9px]">
+              <span className="text-tactical-muted flex items-center gap-1">
+                <Droplet className="w-2.5 h-2.5 text-red-500" />
+                Target Blood Group ({medMatch.target_blood_group}):
+              </span>
+              <span className="text-emerald-400 font-bold bg-emerald-950/80 px-1 rounded border border-emerald-500/40">
+                {medMatch.reserved_units} UNITS RESERVED
+              </span>
+            </div>
+            <div className="flex justify-between text-[9px]">
+              <span className="text-tactical-muted">ICU Trauma Beds:</span>
+              <span className="text-white font-bold">{medMatch.icu_beds_available} BEDS AVAILABLE</span>
+            </div>
           </div>
-          <div className="flex justify-between">
-            <span className="text-tactical-muted">Blood Group (Vault):</span>
-            <span className="text-rose-400 font-bold bg-rose-950/80 px-1 rounded border border-rose-500/50">
-              {dispatches.medical.blood_type}
-            </span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-tactical-muted">Critical Allergies:</span>
-            <span className="text-amber-300 font-semibold">{dispatches.medical.known_allergies}</span>
-          </div>
-          <div className="flex justify-between">
-            <span className="text-tactical-muted">Ambulance Unit ETA:</span>
-            <span className="text-emerald-400 font-bold">{isEmergency ? `${rescue_team.eta_minutes.toFixed(1)} MINS` : '--'}</span>
-          </div>
-          <div className="text-[8px] text-slate-400 truncate pt-0.5 border-t border-rose-500/20">
-            SHA-256: <code className="text-rose-300">{dispatches.medical.sha256_hash.substring(0, 24)}...</code>
+
+          <div className="space-y-1">
+            <div className="flex justify-between">
+              <span className="text-tactical-muted">Critical Allergies:</span>
+              <span className="text-amber-300 font-semibold">{dispatches.medical.known_allergies}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-tactical-muted">Ambulance Unit ETA:</span>
+              <span className="text-emerald-400 font-bold">{isEmergency ? `${rescue_team.eta_minutes.toFixed(1)} MINS` : '--'}</span>
+            </div>
+            <div className="text-[8px] text-slate-400 truncate pt-0.5 border-t border-rose-500/20">
+              SHA-256: <code className="text-rose-300">{dispatches.medical.sha256_hash.substring(0, 24)}...</code>
+            </div>
           </div>
         </div>
       </div>
