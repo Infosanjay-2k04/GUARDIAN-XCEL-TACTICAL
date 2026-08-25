@@ -22,8 +22,10 @@ const NAV_TABS = [
 ];
 
 export default function MobileView({ embedded = false }) {
-  const { tourist, comms, active_incident, isConnected, triggerSim } = useSystem();
+  const { tourist, comms, active_incident, isConnected, triggerSim, sendLiveSensorData } = useSystem();
   const [activeTab, setActiveTab] = useState('home');
+  const [realSensorActive, setRealSensorActive] = useState(false);
+  const lastMotionSendRef = React.useRef(0);
 
   // Auto-focus home / emergency screen when incident becomes active
   useEffect(() => {
@@ -31,6 +33,72 @@ export default function MobileView({ embedded = false }) {
       setActiveTab('home');
     }
   }, [!!active_incident]);
+
+  // 1. Stream Real Phone GPS via navigator.geolocation.watchPosition
+  useEffect(() => {
+    if (typeof window === 'undefined' || !navigator.geolocation) return;
+
+    const watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const { latitude, longitude, accuracy, altitude } = pos.coords;
+        if (sendLiveSensorData) {
+          sendLiveSensorData({
+            lat: latitude,
+            lon: longitude,
+            accuracy: accuracy || 5.0,
+            altitude: altitude || 1240.0
+          });
+        }
+      },
+      (err) => {
+        // Fallback gracefully on desktop or if denied
+        console.warn('[GPS Stream] Geolocation notice:', err.message);
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 1000,
+        timeout: 10000
+      }
+    );
+
+    return () => navigator.geolocation.clearWatch(watchId);
+  }, [sendLiveSensorData]);
+
+  // 2. Stream Real Phone Accelerometer via window.DeviceMotionEvent
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleDeviceMotion = (event) => {
+      const acc = event.accelerationIncludingGravity || event.acceleration;
+      if (!acc) return;
+
+      const ax = acc.x || 0;
+      const ay = acc.y || 0;
+      const az = acc.z || 9.8;
+
+      // Compute G-force magnitude
+      const mag = Math.sqrt(ax * ax + ay * ay + az * az);
+      const gForce = mag / 9.80665; // Normalize standard gravity to 1.0g
+
+      const now = Date.now();
+      // Throttle to 5Hz (every 200ms)
+      if (now - lastMotionSendRef.current >= 200) {
+        lastMotionSendRef.current = now;
+        setRealSensorActive(true);
+        if (sendLiveSensorData) {
+          sendLiveSensorData({
+            accel_x: parseFloat(ax.toFixed(3)),
+            accel_y: parseFloat(ay.toFixed(3)),
+            accel_z: parseFloat(az.toFixed(3)),
+            g_force: parseFloat(gForce.toFixed(2))
+          });
+        }
+      }
+    };
+
+    window.addEventListener('devicemotion', handleDeviceMotion);
+    return () => window.removeEventListener('devicemotion', handleDeviceMotion);
+  }, [sendLiveSensorData]);
 
   const isCritical = tourist.threat_level === 'CRITICAL';
   const isWarning  = tourist.threat_level === 'WARNING';
@@ -96,7 +164,7 @@ export default function MobileView({ embedded = false }) {
           ) : (
             <span className="flex items-center gap-1 text-emerald-400 font-bold">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              AUTO-LOCATION ACTIVE
+              {realSensorActive ? 'PHONE SENSORS LIVE' : 'AUTO-LOCATION ACTIVE'}
             </span>
           )}
         </div>

@@ -1,4 +1,13 @@
-const API_BASE = '/api/v1';
+// Dynamically resolve backend host from current window location
+const getApiBase = () => {
+  if (typeof window !== 'undefined' && window.location.hostname) {
+    const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
+    return `${protocol}//${window.location.hostname}:8000/api/v1`;
+  }
+  return '/api/v1';
+};
+
+const API_BASE = getApiBase();
 
 export async function fetchTouristProfile() {
   const res = await fetch(`${API_BASE}/tourist/profile`);

@@ -444,6 +444,20 @@ class IncidentManager:
         finally:
             db.close()
 
+    def update_tourist_gps(self, lat: float, lon: float, alt: float = None):
+        """Updates live GPS coordinates from real mobile phone stream"""
+        db: Session = SessionLocal()
+        try:
+            t = db.query(Tourist).filter(Tourist.ugid == self.current_tourist_ugid).first()
+            if t:
+                t.current_lat = lat
+                t.current_lon = lon
+                if alt is not None:
+                    t.altitude = alt
+                db.commit()
+        finally:
+            db.close()
+
     def trigger_emergency(self, ugid: str, trigger_type: str = "FALL_DETECTED", notes: str = None) -> Incident:
         """Generates an emergency incident in database and triggers downstream triage"""
         db: Session = SessionLocal()

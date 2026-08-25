@@ -391,6 +391,13 @@ export function SystemProvider({ children }) {
     }
   };
 
+  const sendLiveSensorData = (sensorPayload) => {
+    sendWebSocketMessage({
+      action: 'LIVE_SENSOR_UPDATE',
+      ...sensorPayload
+    });
+  };
+
   return (
     <SystemContext.Provider
       value={{
@@ -402,6 +409,7 @@ export function SystemProvider({ children }) {
         isConnected,
         accelHistory,
         triggerSim,
+        sendLiveSensorData,
         startDemo,
         resetSystem,
         dispatchUav,

@@ -10,9 +10,24 @@ class SensorSimulator:
         self.start_time = time.time()
         self.fall_timestamp = 0.0
         self.heart_rate = 76
+        self.live_override = False
+        self.last_live_time = 0.0
+        self.live_ax = 0.02
+        self.live_ay = 0.04
+        self.live_az = 0.99
+        self.live_g = 1.0
+
+    def update_live_telemetry(self, ax: float, ay: float, az: float, g: float):
+        self.live_override = True
+        self.last_live_time = time.time()
+        self.live_ax = ax or 0.0
+        self.live_ay = ay or 0.0
+        self.live_az = az or 0.98
+        self.live_g = g or 1.0
 
     def set_mode(self, mode: str):
         self.mode = mode
+        self.live_override = False
         if mode == "FALLING":
             self.fall_timestamp = time.time()
             self.heart_rate = 122
@@ -27,12 +42,18 @@ class SensorSimulator:
             self.battery_pct -= 1
 
         if self.mode == "NORMAL_WALK":
-            # Normal gait oscillation (approx 1.8 Hz)
-            gait_freq = 1.8 * 2 * math.pi
-            accel_x = 0.05 * math.sin(gait_freq * elapsed) + random.uniform(-0.02, 0.02)
-            accel_y = 0.08 * math.cos(gait_freq * elapsed) + random.uniform(-0.02, 0.02)
-            accel_z = 0.98 + 0.12 * math.sin(gait_freq * 2 * elapsed) + random.uniform(-0.03, 0.03)
-            g_force = math.sqrt(accel_x**2 + accel_y**2 + accel_z**2)
+            if self.live_override and (now - self.last_live_time < 3.0):
+                accel_x = self.live_ax
+                accel_y = self.live_ay
+                accel_z = self.live_az
+                g_force = self.live_g
+            else:
+                # Normal gait oscillation (approx 1.8 Hz)
+                gait_freq = 1.8 * 2 * math.pi
+                accel_x = 0.05 * math.sin(gait_freq * elapsed) + random.uniform(-0.02, 0.02)
+                accel_y = 0.08 * math.cos(gait_freq * elapsed) + random.uniform(-0.02, 0.02)
+                accel_z = 0.98 + 0.12 * math.sin(gait_freq * 2 * elapsed) + random.uniform(-0.03, 0.03)
+                g_force = math.sqrt(accel_x**2 + accel_y**2 + accel_z**2)
             
             # Step increment
             if random.random() < 0.3:

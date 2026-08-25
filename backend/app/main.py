@@ -133,6 +133,20 @@ async def websocket_endpoint(websocket: WebSocket):
                     elif incident_manager.active_incident_id:
                         incident_manager.resolve_incident(incident_manager.active_incident_id)
 
+                elif action == "LIVE_SENSOR_UPDATE":
+                    from app.simulation.sensor_sim import sensor_sim
+                    lat = msg.get("lat")
+                    lon = msg.get("lon")
+                    alt = msg.get("altitude")
+                    ax = msg.get("accel_x")
+                    ay = msg.get("accel_y")
+                    az = msg.get("accel_z")
+                    g_force = msg.get("g_force")
+                    if g_force is not None:
+                        sensor_sim.update_live_telemetry(ax, ay, az, g_force)
+                    if lat is not None and lon is not None:
+                        incident_manager.update_tourist_gps(float(lat), float(lon), float(alt) if alt is not None else None)
+
             except json.JSONDecodeError:
                 pass
             except Exception as inner_err:
