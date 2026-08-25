@@ -317,6 +317,14 @@ class UAVFlightSimulator:
             "haversine_distance_to_target_m": round(
                 self._haversine_distance(self.lat, self.lon, self.target_lkp_lat or self.lat, self.target_lkp_lon or self.lon), 1
             ),
+            "isrid_model": {
+                "victim_category": "HIKER_TREKKER",
+                "p25_radius_m": 400,
+                "p50_radius_m": 800,
+                "p75_radius_m": 1500,
+                "priority_sector": "INNER_CORE_P25",
+                "statistical_source": "International Search & Rescue Incident Database (ISRID v2.0)"
+            },
             "search_pattern": self.search_pattern,
             "search_progress_pct": round(self.search_progress_pct, 1),
             "target_locked": self.target_locked,

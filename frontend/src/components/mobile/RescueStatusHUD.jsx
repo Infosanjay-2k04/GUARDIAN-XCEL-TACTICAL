@@ -42,6 +42,17 @@ export default function RescueStatusHUD() {
         <StatusBadge status={active_incident.status} size="xs" pulse />
       </div>
 
+      {/* Golden Hour Countdown Banner */}
+      <div className="p-1.5 rounded bg-rose-950/50 border border-rose-500/50 flex items-center justify-between text-[9px]">
+        <span className="text-rose-300 font-bold flex items-center gap-1">
+          <Clock className="w-3 h-3 text-rose-400 animate-spin" style={{ animationDuration: '4s' }} />
+          GOLDEN HOUR TRAUMA CLOCK:
+        </span>
+        <span className="font-black text-white bg-black/60 px-1.5 py-0.5 rounded border border-rose-500/60 tracking-wider">
+          {rescue_team?.golden_hour?.formatted || '58:42'}
+        </span>
+      </div>
+
       {/* Multi-Department Real-Time Alerts */}
       <div className="space-y-1.5 pt-1">
         <div className="text-[9px] font-bold text-slate-300 flex items-center justify-between">

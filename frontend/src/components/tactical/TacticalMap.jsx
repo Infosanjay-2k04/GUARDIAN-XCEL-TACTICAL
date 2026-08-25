@@ -327,12 +327,54 @@ export default function TacticalMap({ embedded = false }) {
           />
         )}
 
+        {/* ISRID Statistical Search Rings (25%, 50%, 75% Probability Envelopes) */}
+        {active_incident && (
+          <>
+            {/* 75% Outer Envelope */}
+            <Circle
+              center={[active_incident.lkp_lat, active_incident.lkp_lon]}
+              radius={650}
+              pathOptions={{
+                color: '#60a5fa',
+                fillColor: '#60a5fa',
+                fillOpacity: 0.03,
+                weight: 1,
+                dashArray: '6, 6'
+              }}
+            />
+            {/* 50% Mid Envelope */}
+            <Circle
+              center={[active_incident.lkp_lat, active_incident.lkp_lon]}
+              radius={350}
+              pathOptions={{
+                color: '#38bdf8',
+                fillColor: '#38bdf8',
+                fillOpacity: 0.06,
+                weight: 1.2,
+                dashArray: '4, 4'
+              }}
+            />
+            {/* 25% High-Probability Core (ISRID Hiker Priority 1) */}
+            <Circle
+              center={[active_incident.lkp_lat, active_incident.lkp_lon]}
+              radius={150}
+              pathOptions={{
+                color: '#00f0ff',
+                fillColor: '#00f0ff',
+                fillOpacity: 0.14,
+                weight: 1.8,
+                dashArray: '2, 2'
+              }}
+            />
+          </>
+        )}
+
         {/* Search Radius Circle if UAV is searching */}
         {uav.status === 'SEARCHING' && (
           <Circle
             center={[active_incident?.lkp_lat || tourist.current_lat, active_incident?.lkp_lon || tourist.current_lon]}
             radius={90}
-            pathOptions={{ color: '#00f0ff', fillColor: '#00f0ff', fillOpacity: 0.12, weight: 1.5 }}
+            pathOptions={{ color: '#00f0ff', fillColor: '#00f0ff', fillOpacity: 0.18, weight: 2 }}
           />
         )}
       </MapContainer>

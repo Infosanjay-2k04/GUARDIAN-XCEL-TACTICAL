@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useSystem } from '../../context/SystemContext';
-import { ShieldAlert, CheckCircle2, Truck, Navigation, Clock, Radio, Key, Crosshair, MapPin, Send, Layers } from 'lucide-react';
+import { ShieldAlert, CheckCircle2, Truck, Navigation, Clock, Radio, Key, Crosshair, MapPin, Send, Layers, Hourglass, FileCode } from 'lucide-react';
 import DroneIcon from '../common/DroneIcon';
 import StatusBadge from '../common/StatusBadge';
 import MultiDeptEscalationPanel from './MultiDeptEscalationPanel';
+import CapAlertModal from './CapAlertModal';
 
 export default function ActiveIncidentPanel() {
   const { 
@@ -18,11 +19,23 @@ export default function ActiveIncidentPanel() {
   } = useSystem();
 
   const [viewTab, setViewTab] = useState('multi_dept'); // 'overview' | 'multi_dept'
+  const [showCapModal, setShowCapModal] = useState(false);
+
+  const goldenHour = rescue_team?.golden_hour || {
+    formatted: '58:42',
+    progress_pct: 97.8,
+    urgency: 'NORMAL'
+  };
+
+  const tobler = rescue_team?.tobler_kinematics || {
+    speed_kmh: 16.5,
+    slope_deg: 18.4
+  };
 
   return (
-    <div className="tactical-box p-3 rounded border border-tactical-border/90 bg-tactical-dark/95 flex flex-col h-full gap-2.5">
-      {/* Header with Tab Switcher */}
-      <div className="flex items-center justify-between border-b border-tactical-border/60 pb-1.5 text-xs font-mono font-bold text-slate-200">
+    <div className="tactical-box p-3 rounded border border-tactical-border/90 bg-tactical-dark/95 flex flex-col h-full gap-2.5 font-mono">
+      {/* Header with Tab Switcher & CAP 1.2 Button */}
+      <div className="flex items-center justify-between border-b border-tactical-border/60 pb-1.5 text-xs font-bold text-slate-200">
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1.5 text-rose-400">
             <ShieldAlert className="w-4 h-4 text-rose-500" />
@@ -48,16 +61,44 @@ export default function ActiveIncidentPanel() {
           </div>
         </div>
 
-        {active_incident ? (
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-rose-950/60 border border-rose-500 text-rose-300 font-bold animate-pulse">
-            CRITICAL
-          </span>
-        ) : (
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-950/40 border border-emerald-500/40 text-emerald-400 font-bold">
-            0 ACTIVE
-          </span>
-        )}
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setShowCapModal(true)}
+            className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-tactical-card hover:bg-tactical-cardHover border border-tactical-cyan/60 text-tactical-cyan text-[9px] font-bold transition-all active:scale-95"
+          >
+            <FileCode className="w-3 h-3" />
+            CAP v1.2
+          </button>
+
+          {active_incident ? (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-rose-950/60 border border-rose-500 text-rose-300 font-bold animate-pulse">
+              CRITICAL
+            </span>
+          ) : (
+            <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-950/40 border border-emerald-500/40 text-emerald-400 font-bold">
+              0 ACTIVE
+            </span>
+          )}
+        </div>
       </div>
+
+      {/* Golden Hour Trauma Window Countdown Bar */}
+      {active_incident && (
+        <div className="p-2 rounded bg-gradient-to-r from-rose-950/80 via-black to-tactical-darkest border border-rose-500/60 flex items-center justify-between shadow-[0_0_12px_rgba(255,34,85,0.2)]">
+          <div className="flex items-center gap-2">
+            <Hourglass className="w-4 h-4 text-rose-400 animate-spin" style={{ animationDuration: '4s' }} />
+            <div>
+              <div className="text-[9px] text-rose-300 font-bold tracking-wider">GOLDEN HOUR TRAUMA WINDOW</div>
+              <div className="text-[8px] text-slate-400">Tobler ATV Speed: {tobler.speed_kmh} km/h (Slope: +{tobler.slope_deg}°)</div>
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-sm font-black text-white font-mono tracking-widest bg-black/60 px-2 py-0.5 rounded border border-rose-500/50">
+              {goldenHour.formatted}
+            </div>
+          </div>
+        </div>
+      )}
 
       {viewTab === 'multi_dept' ? (
         <div className="flex-1 overflow-y-auto pr-1">
@@ -161,6 +202,12 @@ export default function ActiveIncidentPanel() {
           <div className="text-[10px] text-tactical-muted">All registered hikers within safety geofence boundaries. Normal vitals.</div>
         </div>
       )}
+
+      {/* OASIS CAP v1.2 Modal */}
+      <CapAlertModal
+        isOpen={showCapModal}
+        onClose={() => setShowCapModal(false)}
+      />
     </div>
   );
 }

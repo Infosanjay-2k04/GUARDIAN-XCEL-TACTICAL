@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { useSystem } from '../../context/SystemContext';
-import { Terminal, Clock, Shield, Key, Radio, Wifi, ShieldCheck, CheckCircle2, AlertTriangle, Link as LinkIcon, Database, Check } from 'lucide-react';
+import { Terminal, Clock, Shield, Key, Radio, Wifi, ShieldCheck, CheckCircle2, AlertTriangle, Link as LinkIcon, Database, Check, FileText, Printer } from 'lucide-react';
 import StatusBadge from '../common/StatusBadge';
+import ForensicDossierModal from './ForensicDossierModal';
 
 export default function TimelineLog() {
   const { recent_events, isConnected, comms, forensic_ledger, forensic_audit } = useSystem();
   const [activeTab, setActiveTab] = useState('events'); // 'events' | 'ledger'
   const [showVerifyModal, setShowVerifyModal] = useState(false);
+  const [showDossierModal, setShowDossierModal] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [verifyResult, setVerifyResult] = useState(null);
 
@@ -29,9 +31,9 @@ export default function TimelineLog() {
   };
 
   return (
-    <div className="tactical-box p-3 rounded border border-tactical-border/90 bg-tactical-dark/95 flex flex-col h-full gap-2 relative">
-      {/* Header with Comms & Tab Switcher */}
-      <div className="flex flex-wrap items-center justify-between border-b border-tactical-border/60 pb-1.5 text-xs font-mono font-bold text-slate-200 gap-2">
+    <div className="tactical-box p-3 rounded border border-tactical-border/90 bg-tactical-dark/95 flex flex-col h-full gap-2 relative font-mono">
+      {/* Header with Comms, Auditor & Dossier Export */}
+      <div className="flex flex-wrap items-center justify-between border-b border-tactical-border/60 pb-1.5 text-xs font-bold text-slate-200 gap-2">
         <div className="flex items-center gap-2">
           <span className="flex items-center gap-1.5 text-tactical-cyan">
             <Terminal className="w-4 h-4 text-tactical-cyan" />
@@ -58,8 +60,16 @@ export default function TimelineLog() {
           </div>
         </div>
 
-        {/* Action Button & Indicators */}
-        <div className="flex items-center gap-2 text-[9px] font-mono">
+        {/* Action Buttons & Status Indicators */}
+        <div className="flex items-center gap-2 text-[9px]">
+          <button
+            onClick={() => setShowDossierModal(true)}
+            className="flex items-center gap-1 px-2 py-0.5 rounded bg-blue-950/70 hover:bg-blue-900/80 border border-blue-500/60 text-blue-300 font-bold transition-all active:scale-95 shadow-[0_0_8px_rgba(59,130,246,0.3)]"
+          >
+            <FileText className="w-3 h-3 text-blue-400" />
+            EXPORT DOSSIER
+          </button>
+
           <button
             onClick={handleVerifyLedger}
             disabled={isVerifying}
@@ -80,7 +90,7 @@ export default function TimelineLog() {
 
       {/* Main Feed */}
       {activeTab === 'events' ? (
-        <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 max-h-48 text-[10px] font-mono">
+        <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 max-h-48 text-[10px]">
           {recent_events && recent_events.length > 0 ? (
             recent_events.map(ev => {
               const isAlert = ev.event_type === 'SENSOR_ALERT' || ev.event_type === 'IMMOBILITY' || ev.event_type === 'EMERGENCY_CREATED';
@@ -139,7 +149,7 @@ export default function TimelineLog() {
         </div>
       ) : (
         /* Forensic Blockchain Ledger View */
-        <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 max-h-48 text-[9px] font-mono">
+        <div className="flex-1 overflow-y-auto space-y-1.5 pr-1 max-h-48 text-[9px]">
           {forensic_ledger && forensic_ledger.length > 0 ? (
             forensic_ledger.map((block, idx) => (
               <div
@@ -227,6 +237,12 @@ export default function TimelineLog() {
           </div>
         </div>
       )}
+
+      {/* Magisterial & Forensic Dossier Modal */}
+      <ForensicDossierModal
+        isOpen={showDossierModal}
+        onClose={() => setShowDossierModal(false)}
+      />
     </div>
   );
 }
