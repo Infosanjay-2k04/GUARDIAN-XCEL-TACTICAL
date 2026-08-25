@@ -3,14 +3,16 @@ import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, Polygon, useM
 import L from 'leaflet';
 import { useSystem } from '../../context/SystemContext';
 
-// Helper component to keep UAV or LKP in viewport focus
-function DroneMapController({ uavPos, isFlying }) {
+// Helper component to keep target victim LKP and UAV in active mission viewport focus
+function DroneMapController({ uavPos, lkpPos, isFlying }) {
   const map = useMap();
   useEffect(() => {
-    if (uavPos && uavPos[0] && uavPos[1] && isFlying) {
-      map.setView(uavPos, 15, { animate: true, duration: 0.8 });
+    if (lkpPos && lkpPos[0] && lkpPos[1]) {
+      map.setView(lkpPos, 16, { animate: true, duration: 0.8 });
+    } else if (uavPos && uavPos[0] && uavPos[1]) {
+      map.setView(uavPos, 16, { animate: true, duration: 0.8 });
     }
-  }, [uavPos, isFlying, map]);
+  }, [lkpPos?.[0], lkpPos?.[1], isFlying, map]);
   return null;
 }
 
@@ -18,8 +20,14 @@ export default function UAVSearchMap() {
   const { uav, active_incident, tourist } = useSystem();
 
   const isFlying = uav.status !== 'STANDBY';
-  const lkpLat = active_incident?.lkp_lat || tourist.current_lat;
-  const lkpLon = active_incident?.lkp_lon || tourist.current_lon;
+  const lkpLat = active_incident?.target_lat || active_incident?.lkp_lat || tourist?.current_lat || 37.7420;
+  const lkpLon = active_incident?.target_lon || active_incident?.lkp_lon || tourist?.current_lon || -119.5975;
+
+  const uavLat = uav.current_lat || lkpLat + 0.0018;
+  const uavLon = uav.current_lon || lkpLon + 0.0022;
+
+  const formatLat = (lat) => `${Math.abs(lat || 0).toFixed(4)}°${(lat || 0) >= 0 ? 'N' : 'S'}`;
+  const formatLon = (lon) => `${Math.abs(lon || 0).toFixed(4)}°${(lon || 0) >= 0 ? 'E' : 'W'}`;
 
   // Custom DivIcon for UAV
   const createDroneIcon = (uavState) => {
@@ -99,7 +107,7 @@ export default function UAVSearchMap() {
 
   // Flight trajectory from drone to LKP
   const flightPath = isFlying ? [
-    [uav.current_lat, uav.current_lon],
+    [uavLat, uavLon],
     [lkpLat, lkpLon]
   ] : null;
 
@@ -109,7 +117,7 @@ export default function UAVSearchMap() {
       <div className="flex items-center justify-between border-b border-tactical-border/60 pb-1.5 text-xs font-mono font-bold text-slate-200">
         <span className="flex items-center gap-1.5 text-tactical-cyan">
           <span className="w-2 h-2 rounded-full bg-tactical-cyan animate-pulse" />
-          AUTONOMOUS SEARCH RADAR & SECTOR MAP
+          AUTONOMOUS SEARCH RADAR &amp; SECTOR MAP
         </span>
         <span className="text-[10px] text-tactical-muted">
           PATTERN: {uav.search_pattern}
@@ -128,18 +136,22 @@ export default function UAVSearchMap() {
 
         {/* Map Telemetry Box Overlay */}
         <div className="absolute top-2 left-2 z-20 bg-tactical-darkest/95 border border-tactical-border px-2.5 py-1.5 rounded text-[10px] font-mono space-y-0.5">
-          <div className="text-tactical-cyan font-bold">DRONE GPS: {uav.current_lat.toFixed(4)}°N, {Math.abs(uav.current_lon).toFixed(4)}°W</div>
-          <div className="text-slate-300">TARGET LKP: {lkpLat.toFixed(4)}°N, {Math.abs(lkpLon).toFixed(4)}°W</div>
+          <div className="text-tactical-cyan font-bold">DRONE GPS: {formatLat(uavLat)}, {formatLon(uavLon)}</div>
+          <div className="text-slate-300">TARGET LKP: {formatLat(lkpLat)}, {formatLon(lkpLon)}</div>
           <div className="text-amber-400 font-bold">MODE: {uav.status}</div>
         </div>
 
         <MapContainer
           center={[lkpLat, lkpLon]}
-          zoom={15}
+          zoom={16}
           scrollWheelZoom={true}
           className="w-full h-full min-h-[360px]"
         >
-          <DroneMapController uavPos={[uav.current_lat, uav.current_lon]} isFlying={isFlying} />
+          <DroneMapController 
+            uavPos={[uavLat, uavLon]} 
+            lkpPos={[lkpLat, lkpLon]} 
+            isFlying={isFlying} 
+          />
 
           {/* Dark CartoDB Tiles */}
           <TileLayer
@@ -212,7 +224,7 @@ export default function UAVSearchMap() {
 
           {/* Live UAV Marker */}
           <Marker
-            position={[uav.current_lat, uav.current_lon]}
+            position={[uavLat, uavLon]}
             icon={createDroneIcon(uav)}
           >
             <Popup>

@@ -81,7 +81,7 @@ export default function DroneFleetPanel() {
                 <div className="flex justify-between">
                   <span className="text-tactical-muted">GPS Fix:</span>
                   <span className="font-bold text-slate-200">
-                    {drone.current_lat.toFixed(4)}°N, {Math.abs(drone.current_lon).toFixed(4)}°W
+                    {Math.abs(drone.current_lat).toFixed(4)}°{drone.current_lat >= 0 ? 'N' : 'S'}, {Math.abs(drone.current_lon).toFixed(4)}°{drone.current_lon >= 0 ? 'E' : 'W'}
                   </span>
                 </div>
                 <div className="flex justify-between">

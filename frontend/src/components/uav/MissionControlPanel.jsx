@@ -67,7 +67,7 @@ export default function MissionControlPanel() {
         <div className="flex justify-between">
           <span className="text-tactical-muted">Target UGID &amp; LKP:</span>
           <span className="font-bold text-white">
-            {active_incident?.ugid || tourist?.ugid || 'GX-8921-ALPHA'} ({lkpLat.toFixed(4)}°N, {Math.abs(lkpLon).toFixed(4)}°W)
+            {active_incident?.ugid || tourist?.ugid || 'GX-8921-ALPHA'} ({Math.abs(lkpLat).toFixed(4)}°{lkpLat >= 0 ? 'N' : 'S'}, {Math.abs(lkpLon).toFixed(4)}°{lkpLon >= 0 ? 'E' : 'W'})
           </span>
         </div>
 

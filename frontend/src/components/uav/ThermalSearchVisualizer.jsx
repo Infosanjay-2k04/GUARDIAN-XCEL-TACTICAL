@@ -290,7 +290,7 @@ export default function ThermalSearchVisualizer() {
         <div className="absolute top-2 left-2 text-[9px] font-mono text-cyan-300 bg-black/85 p-1.5 rounded border border-cyan-500/30 space-y-0.5 pointer-events-none">
           <div>SCAN STATE: {isLocked ? 'TARGET_LOCKED' : isSearching ? 'EXPANDING_SQUARE_SWEEP' : 'STANDBY'}</div>
           <div>GIMBAL PITCH: {thermal_vision.gimbal_pitch_deg}° // ALT: {uav.altitude_agl}m AGL</div>
-          <div>TARGET GPS: {targetLat.toFixed(4)}°N, {Math.abs(targetLon).toFixed(4)}°W</div>
+          <div>TARGET GPS: {Math.abs(targetLat).toFixed(4)}°{targetLat >= 0 ? 'N' : 'S'}, {Math.abs(targetLon).toFixed(4)}°{targetLon >= 0 ? 'E' : 'W'}</div>
         </div>
 
         {/* HUD Telemetry Top-Right */}

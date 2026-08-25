@@ -118,9 +118,22 @@ class UAVFlightSimulator:
         if lkp_lon is None or math.isnan(float(lkp_lon)) or float(lkp_lon) == 0.0:
             lkp_lon = settings.DEFAULT_TOURIST_GPS["lon"]
 
+        target_lat = float(lkp_lat)
+        target_lon = float(lkp_lon)
+
+        # Check distance from current drone base to target victim
+        curr_dist = self._haversine_distance(self.lat, self.lon, target_lat, target_lon)
+        
+        # If current position is in a different region/continent (> 1500m), relocalize Drone Base Pad 01 to the victim's sector (~250m offset)
+        if curr_dist > 1500.0 or self.status == "STANDBY":
+            self.base_lat = round(target_lat + 0.0018, 6)
+            self.base_lon = round(target_lon + 0.0022, 6)
+            self.lat = self.base_lat
+            self.lon = self.base_lon
+
         self.status = "EN_ROUTE_LKP"
-        self.target_lkp_lat = float(lkp_lat)
-        self.target_lkp_lon = float(lkp_lon)
+        self.target_lkp_lat = target_lat
+        self.target_lkp_lon = target_lon
         self.search_progress_pct = 0.0
         self.target_locked = False
         self.target_confidence = 0.0
