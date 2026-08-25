@@ -288,18 +288,28 @@ export default function TacticalMap({ embedded = false }) {
           <Marker position={[active_incident.lkp_lat, active_incident.lkp_lon]} icon={createLkpIcon()} />
         )}
 
-        {/* UAV Marker */}
-        {uav.status !== 'STANDBY' && (
-          <Marker position={[uav.current_lat, uav.current_lon]} icon={createUavIcon(uav)}>
-            <Popup>
-              <div className="font-mono text-xs p-1">
-                <div className="font-bold text-cyan-400">{uav.callsign}</div>
-                <div>Status: {uav.status}</div>
-                <div>Altitude: {uav.altitude_agl}m | Battery: {uav.battery_pct}%</div>
-              </div>
-            </Popup>
-          </Marker>
+        {/* Real-time UAV Flight Trail Breadcrumbs */}
+        {uav.flight_trail && uav.flight_trail.length > 1 && (
+          <Polyline
+            positions={uav.flight_trail}
+            pathOptions={{ color: '#00f0ff', weight: 2.5, opacity: 0.85 }}
+          />
         )}
+
+        {/* UAV Marker */}
+        <Marker 
+          position={[uav.current_lat || 37.7490, uav.current_lon || -119.5860]} 
+          icon={createUavIcon(uav)}
+        >
+          <Popup>
+            <div className="font-mono text-xs p-1">
+              <div className="font-bold text-cyan-400">{uav.callsign}</div>
+              <div>Status: {uav.status}</div>
+              <div>Altitude: {uav.altitude_agl}m | Battery: {uav.battery_pct}%</div>
+              <div>Heading: {uav.heading_deg}° | Speed: {uav.airspeed_mps} m/s</div>
+            </div>
+          </Popup>
+        </Marker>
 
         {/* Ground Rescue Team Marker */}
         <Marker position={[rescue_team.current_lat, rescue_team.current_lon]} icon={createRescueTeamIcon(rescue_team)}>

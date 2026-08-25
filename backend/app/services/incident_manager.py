@@ -603,15 +603,25 @@ class IncidentManager:
         finally:
             db.close()
 
-    def dispatch_uav(self, incident_id: int):
-        """Dispatches UAV-Alpha to LKP coordinates"""
+    def dispatch_uav(self, incident_id: Optional[int] = None, lkp_lat: Optional[float] = None, lkp_lon: Optional[float] = None):
+        """Dispatches UAV-Alpha to LKP coordinates with dynamic GPS fallback"""
+        target_lat = lkp_lat
+        target_lon = lkp_lon
+
         db: Session = SessionLocal()
         try:
-            inc = db.query(Incident).filter(Incident.id == incident_id).first()
+            inc = None
+            if incident_id:
+                inc = db.query(Incident).filter(Incident.id == incident_id).first()
+            elif self.active_incident_id:
+                inc = db.query(Incident).filter(Incident.id == self.active_incident_id).first()
+
             if inc:
                 inc.status = "UAV_DISPATCHED"
-                uav_sim.dispatch_to_lkp(inc.lkp_lat, inc.lkp_lon)
-                
+                if target_lat is None or target_lon is None:
+                    target_lat = inc.lkp_lat
+                    target_lon = inc.lkp_lon
+
                 now_time = datetime.datetime.now().strftime("%H:%M:%S")
                 event1 = TimelineEvent(
                     incident_id=inc.id,
@@ -625,31 +635,48 @@ class IncidentManager:
                     incident_id=inc.id,
                     event_type="UAV_LAUNCH",
                     title=f"{now_time} — UAV dispatched to LKP",
-                    description=f"Drone airborne (24 m/s, 45m AGL). Vectoring to {inc.lkp_lat:.5f}, {inc.lkp_lon:.5f}.",
+                    description=f"Drone airborne (24 m/s, 45m AGL). Vectoring to {target_lat:.5f}, {target_lon:.5f}.",
                     source="UAV_OPS",
                     cryptographic_hash=TimelineEvent.generate_hash("UAV Scramble", str(datetime.datetime.utcnow()), "UAV_OPS")
                 )
                 db.add_all([event1, event2])
                 db.commit()
+
+            # Dynamic fallback to active tourist coordinates
+            if target_lat is None or target_lon is None:
+                tourist = db.query(Tourist).filter(Tourist.ugid == self.current_tourist_ugid).first()
+                if tourist and tourist.current_lat and tourist.current_lon:
+                    target_lat = tourist.current_lat
+                    target_lon = tourist.current_lon
+                else:
+                    target_lat = settings.DEFAULT_TOURIST_GPS["lat"]
+                    target_lon = settings.DEFAULT_TOURIST_GPS["lon"]
+
+            uav_sim.dispatch_to_lkp(target_lat, target_lon)
         finally:
             db.close()
 
     def start_uav_search(self):
         """Forces UAV into active expanding search pattern"""
-        uav_sim.status = "SEARCHING"
-        uav_sim.search_start_time = time.time()
+        uav_sim.start_expanding_square_search()
         now_time = datetime.datetime.now().strftime("%H:%M:%S")
         self.add_timeline_log(self.active_incident_id, "SEARCH_INITIATED", f"{now_time} — Search initiated", "Expanding square search pattern commenced.", "UAV_OPS")
 
     def trigger_thermal_scan(self):
         """Forces immediate thermal target lock"""
-        uav_sim.target_locked = True
-        uav_sim.status = "TARGET_LOCKED"
-        uav_sim.target_confidence = 97.6
-        if uav_sim.target_lkp_lat:
-            uav_sim.target_lat = round(uav_sim.target_lkp_lat + 0.00012, 6)
-            uav_sim.target_lon = round(uav_sim.target_lkp_lon - 0.00008, 6)
-        uav_sim.target_thermal_temp = 36.8
+        uav_sim.trigger_thermal_lock()
+        now_time = datetime.datetime.now().strftime("%H:%M:%S")
+        self.add_timeline_log(self.active_incident_id, "TARGET_DETECT", f"{now_time} — Victim located via FLIR (36.8°C)", f"Human body heat signature locked at {uav_sim.target_lat:.5f}, {uav_sim.target_lon:.5f}. Confidence: {uav_sim.target_confidence}%.", "UAV_OPS")
+
+    def return_uav_to_base(self):
+        """Forces UAV to return to base"""
+        uav_sim.return_to_base()
+        now_time = datetime.datetime.now().strftime("%H:%M:%S")
+        self.add_timeline_log(self.active_incident_id, "UAV_RTL", f"{now_time} — UAV RTL Initiated", "UAV returning to Base Pad 01.", "UAV_OPS")
+
+    def reset_uav(self):
+        """Resets UAV to standby at Base Pad 01"""
+        uav_sim.reset_to_base()
 
     def dispatch_ground_rescue(self, incident_id: int):
         """Dispatches Ground Rescue Team to target coordinates"""

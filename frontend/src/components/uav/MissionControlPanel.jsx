@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSystem } from '../../context/SystemContext';
-import { Crosshair, Play, Eye, RotateCcw, ShieldCheck, CheckCircle2, Navigation2, ArrowRight, Gauge, Radio } from 'lucide-react';
+import { Crosshair, Play, Eye, RotateCcw, ShieldCheck, CheckCircle2, Navigation2, ArrowRight, Gauge, Radio, RefreshCw, Zap } from 'lucide-react';
 import DroneIcon from '../common/DroneIcon';
 import StatusBadge from '../common/StatusBadge';
 
@@ -12,14 +12,16 @@ export default function MissionControlPanel() {
     dispatchUav, 
     startUavSearch, 
     triggerThermalScan, 
-    returnUavToBase 
+    lockTarget,
+    returnUavToBase,
+    resetUav 
   } = useSystem();
 
   // Compute live Euclidean distance to LKP (m)
-  const lkpLat = active_incident?.target_lat || active_incident?.lkp_lat || tourist.current_lat;
-  const lkpLon = active_incident?.target_lon || active_incident?.lkp_lon || tourist.current_lon;
-  const dLat = (lkpLat - uav.current_lat) * 111111.0;
-  const dLon = (lkpLon - uav.current_lon) * 111111.0 * Math.cos(lkpLat * Math.PI / 180.0);
+  const lkpLat = active_incident?.target_lat || active_incident?.lkp_lat || tourist?.current_lat || 37.7420;
+  const lkpLon = active_incident?.target_lon || active_incident?.lkp_lon || tourist?.current_lon || -119.5975;
+  const dLat = (lkpLat - (uav.current_lat || 37.7490)) * 111111.0;
+  const dLon = (lkpLon - (uav.current_lon || -119.5860)) * 111111.0 * Math.cos(lkpLat * Math.PI / 180.0);
   const distMeters = Math.round(Math.sqrt(dLat * dLat + dLon * dLon));
 
   const isFlying = uav.status !== 'STANDBY';
@@ -33,18 +35,28 @@ export default function MissionControlPanel() {
   };
 
   return (
-    <div className="tactical-box p-3 rounded border border-tactical-border/90 bg-tactical-dark/95 flex flex-col h-full gap-2.5">
+    <div className="tactical-box p-3 rounded border border-tactical-border/90 bg-tactical-dark/95 flex flex-col h-full gap-2.5 font-mono">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-tactical-border/60 pb-1.5 text-xs font-mono font-bold text-slate-200">
+      <div className="flex items-center justify-between border-b border-tactical-border/60 pb-1.5 text-xs font-bold text-slate-200">
         <span className="flex items-center gap-1.5 text-tactical-cyan">
           <Crosshair className="w-4 h-4 text-tactical-cyan" />
-          AUTONOMOUS MISSION CONTROL & MAVLINK TELEMETRY
+          AUTONOMOUS MISSION CONTROL &amp; MAVLINK TELEMETRY
         </span>
-        <StatusBadge status={uav.status} size="xs" pulse={isFlying} />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={resetUav}
+            className="text-[9px] px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center gap-1 transition-all"
+            title="Reset UAV to Pad 01"
+          >
+            <RefreshCw className="w-2.5 h-2.5" />
+            RESET
+          </button>
+          <StatusBadge status={uav.status} size="xs" pulse={isFlying} />
+        </div>
       </div>
 
       {/* Primary Mission Readouts */}
-      <div className="p-2.5 rounded bg-tactical-card/90 border border-tactical-border/80 text-[10px] font-mono space-y-1.5">
+      <div className="p-2.5 rounded bg-tactical-card/90 border border-tactical-border/80 text-[10px] space-y-1.5">
         <div className="flex justify-between">
           <span className="text-tactical-muted">Mission Protocol:</span>
           <span className="font-bold text-tactical-cyan">
@@ -53,9 +65,9 @@ export default function MissionControlPanel() {
         </div>
 
         <div className="flex justify-between">
-          <span className="text-tactical-muted">Target UGID & LKP:</span>
+          <span className="text-tactical-muted">Target UGID &amp; LKP:</span>
           <span className="font-bold text-white">
-            {active_incident?.ugid || tourist.ugid} ({lkpLat.toFixed(4)}°N, {Math.abs(lkpLon).toFixed(4)}°W)
+            {active_incident?.ugid || tourist?.ugid || 'GX-8921-ALPHA'} ({lkpLat.toFixed(4)}°N, {Math.abs(lkpLon).toFixed(4)}°W)
           </span>
         </div>
 
@@ -115,28 +127,18 @@ export default function MissionControlPanel() {
       </div>
 
       {/* Interactive Command Buttons */}
-      <div className="grid grid-cols-2 gap-2 mt-auto">
+      <div className="grid grid-cols-2 gap-2 mt-auto text-xs">
         <button
           onClick={() => dispatchUav(active_incident?.id)}
-          disabled={isFlying}
-          className={`flex items-center justify-center gap-1.5 p-2 rounded border text-xs font-mono font-bold transition-all ${
-            !isFlying
-              ? 'bg-tactical-cyan/20 hover:bg-tactical-cyan/30 border-tactical-cyan text-white shadow-cyan-glow'
-              : 'bg-tactical-card opacity-50 cursor-not-allowed border-tactical-border text-slate-500'
-          }`}
+          className="flex items-center justify-center gap-1.5 p-2 rounded border bg-tactical-cyan/20 hover:bg-tactical-cyan/30 border-tactical-cyan text-white shadow-cyan-glow font-bold transition-all active:scale-95"
         >
           <Play className="w-3.5 h-3.5 text-tactical-cyan" />
-          DISPATCH UAV
+          DISPATCH UAV TO LKP
         </button>
 
         <button
           onClick={startUavSearch}
-          disabled={isSearching || !isFlying}
-          className={`flex items-center justify-center gap-1.5 p-2 rounded border text-xs font-mono font-bold transition-all ${
-            isFlying && !isSearching
-              ? 'bg-amber-500/20 hover:bg-amber-500/30 border-amber-500 text-amber-200'
-              : 'bg-tactical-card opacity-50 cursor-not-allowed border-tactical-border text-slate-500'
-          }`}
+          className="flex items-center justify-center gap-1.5 p-2 rounded border bg-amber-500/20 hover:bg-amber-500/30 border-amber-500 text-amber-200 font-bold transition-all active:scale-95"
         >
           <Navigation2 className="w-3.5 h-3.5 text-amber-400" />
           START SEARCH
@@ -144,22 +146,18 @@ export default function MissionControlPanel() {
 
         <button
           onClick={triggerThermalScan}
-          className={`flex items-center justify-center gap-1.5 p-2 rounded border text-xs font-mono font-bold transition-all ${
-            isLocked
-              ? 'bg-emerald-500/30 border-emerald-400 text-emerald-200'
-              : 'bg-tactical-card hover:bg-tactical-cardHover border-tactical-border text-slate-200 hover:text-white'
-          }`}
+          className="flex items-center justify-center gap-1.5 p-2 rounded border bg-emerald-950/60 hover:bg-emerald-900/60 border-emerald-500 text-emerald-300 font-bold transition-all active:scale-95 shadow-[0_0_10px_rgba(16,185,129,0.25)]"
         >
           <Eye className="w-3.5 h-3.5 text-emerald-400" />
-          THERMAL SCAN
+          THERMAL TARGET LOCK
         </button>
 
         <button
           onClick={returnUavToBase}
-          className="flex items-center justify-center gap-1.5 p-2 rounded border border-tactical-border bg-tactical-card hover:bg-tactical-cardHover text-slate-300 hover:text-white text-xs font-mono font-bold transition-all"
+          className="flex items-center justify-center gap-1.5 p-2 rounded border border-tactical-border bg-tactical-card hover:bg-tactical-cardHover text-slate-300 hover:text-white font-bold transition-all active:scale-95"
         >
           <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
-          RETURN TO BASE
+          RETURN TO BASE (RTL)
         </button>
       </div>
     </div>

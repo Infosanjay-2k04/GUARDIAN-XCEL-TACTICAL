@@ -444,8 +444,32 @@ export function SystemProvider({ children }) {
     }
   };
 
-  const dispatchUav = async (incidentId) => {
-    sendWebSocketMessage({ action: 'DISPATCH_UAV', incident_id: incidentId });
+  const sendUavCommand = (action, customPayload = {}) => {
+    const lkpLat = customPayload.lat || state.active_incident?.lkp_lat || state.tourist?.current_lat || 37.7420;
+    const lkpLng = customPayload.lon || customPayload.lng || state.active_incident?.lkp_lon || state.tourist?.current_lon || -119.5975;
+    
+    const payload = {
+      type: 'UAV_COMMAND',
+      action,
+      target_ugid: selectedUgid || 'GX-8921-ALPHA',
+      incident_id: customPayload.incident_id || state.active_incident?.id,
+      lkp: {
+        lat: lkpLat,
+        lng: lkpLng
+      },
+      ...customPayload
+    };
+
+    console.log('[UAV COMMAND SENT]', action, payload);
+    sendWebSocketMessage(payload);
+  };
+
+  const dispatchUav = async (incidentId, customCoords = null) => {
+    sendUavCommand('DISPATCH_UAV', {
+      incident_id: incidentId,
+      lat: customCoords?.lat,
+      lon: customCoords?.lon || customCoords?.lng
+    });
     try {
       await api.dispatchUAV(incidentId);
     } catch (e) {
@@ -454,7 +478,7 @@ export function SystemProvider({ children }) {
   };
 
   const startUavSearch = async () => {
-    sendWebSocketMessage({ action: 'START_SEARCH' });
+    sendUavCommand('START_SEARCH');
     try {
       await api.startUavSearch();
     } catch (e) {
@@ -463,7 +487,16 @@ export function SystemProvider({ children }) {
   };
 
   const triggerThermalScan = async () => {
-    sendWebSocketMessage({ action: 'TRIGGER_THERMAL' });
+    sendUavCommand('TRIGGER_THERMAL');
+    try {
+      await api.triggerThermalScan();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const lockTarget = async () => {
+    sendUavCommand('LOCK_TARGET');
     try {
       await api.triggerThermalScan();
     } catch (e) {
@@ -472,12 +505,16 @@ export function SystemProvider({ children }) {
   };
 
   const returnUavToBase = async () => {
-    sendWebSocketMessage({ action: 'RETURN_TO_BASE' });
+    sendUavCommand('RETURN_TO_BASE');
     try {
       await api.returnUavToBase();
     } catch (e) {
       console.error(e);
     }
+  };
+
+  const resetUav = async () => {
+    sendUavCommand('RESET_UAV');
   };
 
   const dispatchRescue = async (incidentId) => {
@@ -537,10 +574,13 @@ export function SystemProvider({ children }) {
         sendLiveSensorData,
         startDemo,
         resetSystem,
+        sendUavCommand,
         dispatchUav,
         startUavSearch,
         triggerThermalScan,
+        lockTarget,
         returnUavToBase,
+        resetUav,
         dispatchRescue,
         resolveIncident
       }}

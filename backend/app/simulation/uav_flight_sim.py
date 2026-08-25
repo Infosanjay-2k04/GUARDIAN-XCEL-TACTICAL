@@ -111,17 +111,24 @@ class UAVFlightSimulator:
         return waypoints
 
     def dispatch_to_lkp(self, lkp_lat: float, lkp_lon: float):
-        """Commands UAV to take off and transit to Last Known Position (LKP)"""
+        """Commands UAV to take off and transit to Last Known Position (LKP) with safe coordinate validation"""
+        # Validate coordinates to prevent NaN / Undefined
+        if lkp_lat is None or math.isnan(float(lkp_lat)) or float(lkp_lat) == 0.0:
+            lkp_lat = settings.DEFAULT_TOURIST_GPS["lat"]
+        if lkp_lon is None or math.isnan(float(lkp_lon)) or float(lkp_lon) == 0.0:
+            lkp_lon = settings.DEFAULT_TOURIST_GPS["lon"]
+
         self.status = "EN_ROUTE_LKP"
-        self.target_lkp_lat = lkp_lat
-        self.target_lkp_lon = lkp_lon
+        self.target_lkp_lat = float(lkp_lat)
+        self.target_lkp_lon = float(lkp_lon)
         self.search_progress_pct = 0.0
         self.target_locked = False
         self.target_confidence = 0.0
         self.search_waypoint_idx = 0
-        self.search_waypoints = self._generate_expanding_square_waypoints(lkp_lat, lkp_lon)
+        self.search_waypoints = self._generate_expanding_square_waypoints(self.target_lkp_lat, self.target_lkp_lon)
         self.flight_trail = [[round(self.lat, 6), round(self.lon, 6)]]
         self.mission_seq = 1
+        self.target_heading_deg = self._calculate_bearing(self.lat, self.lon, self.target_lkp_lat, self.target_lkp_lon)
 
     def start_expanding_square_search(self):
         """Initiates autonomous expanding square search grid around LKP"""
@@ -144,6 +151,15 @@ class UAVFlightSimulator:
         self.target_thermal_temp = 36.8
         self.mission_seq = 3
 
+    def lock_target(self):
+        """Alias for trigger_thermal_lock"""
+        self.trigger_thermal_lock()
+
+    def return_to_base(self):
+        """Commands UAV to initiate RTL back to Base Pad 01"""
+        self.status = "RETURNING"
+        self.target_heading_deg = self._calculate_bearing(self.lat, self.lon, self.base_lat, self.base_lon)
+
     def reset_to_base(self):
         self.status = "STANDBY"
         self.lat = self.base_lat
@@ -165,6 +181,10 @@ class UAVFlightSimulator:
         self.target_thermal_temp = 0.0
         self.flight_trail = []
         self.mission_seq = 0
+
+    def reset_uav(self):
+        """Alias for reset_to_base"""
+        self.reset_to_base()
 
     def tick(self, dt: float = 0.2):
         """Updates full 6-DOF kinematics, aerodynamics, and MAVLink telemetry at 5Hz"""

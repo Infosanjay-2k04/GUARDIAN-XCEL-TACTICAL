@@ -71,8 +71,13 @@ async def websocket_endpoint(websocket: WebSocket):
             data_text = await websocket.receive_text()
             try:
                 msg = json.loads(data_text)
+                msg_type = msg.get("type")
                 action = msg.get("action")
                 
+                # Check for wrapped UAV_COMMAND message format
+                if msg_type == "UAV_COMMAND" or action in ["DISPATCH_UAV", "START_SEARCH", "LOCK_TARGET", "TRIGGER_THERMAL", "RETURN_TO_BASE", "RESET_UAV"]:
+                    print(f"[UAV EXECUTION] Received command: {action} | Payload: {msg}")
+
                 if action == "SIM_ACTION":
                     sim_mode = msg.get("mode")
                     if sim_mode == "NORMAL":
@@ -105,19 +110,32 @@ async def websocket_endpoint(websocket: WebSocket):
 
                 elif action == "DISPATCH_UAV":
                     inc_id = msg.get("incident_id")
-                    if inc_id:
-                        incident_manager.dispatch_uav(int(inc_id))
-                    else:
-                        uav_sim.dispatch_to_lkp(37.7420, -119.5975)
+                    lkp = msg.get("lkp") or {}
+                    lat = msg.get("lat") or msg.get("target_lat") or lkp.get("lat")
+                    lon = msg.get("lon") or msg.get("target_lon") or msg.get("target_lng") or lkp.get("lng") or lkp.get("lon")
+                    
+                    incident_manager.dispatch_uav(
+                        incident_id=int(inc_id) if inc_id else None,
+                        lkp_lat=float(lat) if lat is not None else None,
+                        lkp_lon=float(lon) if lon is not None else None
+                    )
+                    print(f"[UAV EXECUTION] DISPATCH_UAV executed. Target: ({lat}, {lon}) | Status: {uav_sim.status}")
 
                 elif action == "START_SEARCH":
                     incident_manager.start_uav_search()
+                    print(f"[UAV EXECUTION] START_SEARCH executed. Waypoints: {len(uav_sim.search_waypoints)} | Status: {uav_sim.status}")
 
-                elif action == "TRIGGER_THERMAL":
+                elif action in ["LOCK_TARGET", "TRIGGER_THERMAL"]:
                     incident_manager.trigger_thermal_scan()
+                    print(f"[UAV EXECUTION] LOCK_TARGET executed. Conf: {uav_sim.target_confidence}% | Status: {uav_sim.status}")
 
-                elif action == "RETURN_TO_BASE":
-                    uav_sim.status = "RETURNING"
+                elif action in ["RETURN_TO_BASE", "RTL"]:
+                    incident_manager.return_uav_to_base()
+                    print(f"[UAV EXECUTION] RETURN_TO_BASE executed. Status: {uav_sim.status}")
+
+                elif action == "RESET_UAV":
+                    incident_manager.reset_uav()
+                    print(f"[UAV EXECUTION] RESET_UAV executed. Status: {uav_sim.status}")
 
                 elif action == "DISPATCH_RESCUE":
                     inc_id = msg.get("incident_id")
