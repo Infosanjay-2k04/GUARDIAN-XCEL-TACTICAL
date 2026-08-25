@@ -415,12 +415,22 @@ class IncidentManager:
                 "recent_events": events_list,
                 "demo_step": self.demo_step,
                 "demo_status_text": self.demo_status_text,
-                "geofence_safe": settings.GEOFENCE_SAFE_ZONE,
-                "geofence_hazard": settings.GEOFENCE_HAZARD_ZONE,
+                "geofence_safe": [
+                    [round(tourist_dict["current_lat"] + 0.0080, 6), round(tourist_dict["current_lon"] - 0.0120, 6)],
+                    [round(tourist_dict["current_lat"] + 0.0095, 6), round(tourist_dict["current_lon"] + 0.0090, 6)],
+                    [round(tourist_dict["current_lat"] - 0.0075, 6), round(tourist_dict["current_lon"] + 0.0105, 6)],
+                    [round(tourist_dict["current_lat"] - 0.0090, 6), round(tourist_dict["current_lon"] - 0.0110, 6)]
+                ],
+                "geofence_hazard": [
+                    [round(tourist_dict["current_lat"] - 0.0010, 6), round(tourist_dict["current_lon"] - 0.0035, 6)],
+                    [round(tourist_dict["current_lat"] + 0.0015, 6), round(tourist_dict["current_lon"] + 0.0015, 6)],
+                    [round(tourist_dict["current_lat"] - 0.0030, 6), round(tourist_dict["current_lon"] + 0.0025, 6)],
+                    [round(tourist_dict["current_lat"] - 0.0045, 6), round(tourist_dict["current_lon"] - 0.0020, 6)]
+                ],
                 "landmarks": {
-                    "ranger_hq": settings.RANGER_STATION_GPS,
-                    "uav_hangar": settings.UAV_HANGAR_GPS,
-                    "rescue_station": settings.RESCUE_STATION_GPS
+                    "ranger_hq": { "lat": round(tourist_dict["current_lat"] + 0.0065, 6), "lon": round(tourist_dict["current_lon"] + 0.0105, 6), "name": "Tactical Alpha Hub (Ranger HQ)" },
+                    "uav_hangar": { "lat": round(uav_sim.base_lat, 6), "lon": round(uav_sim.base_lon, 6), "name": "UAV Drone Base (Pad 01)" },
+                    "rescue_station": { "lat": round(rescue_sim.base_lat, 6), "lon": round(rescue_sim.base_lon, 6), "name": "Ground Rescue Outpost (Unit Echo-4)" }
                 }
             }
         finally:
@@ -445,7 +455,7 @@ class IncidentManager:
             db.close()
 
     def update_tourist_gps(self, lat: float, lon: float, alt: float = None):
-        """Updates live GPS coordinates from real mobile phone stream"""
+        """Updates live GPS coordinates and recalibrates sector assets relative to real device GPS"""
         db: Session = SessionLocal()
         try:
             t = db.query(Tourist).filter(Tourist.ugid == self.current_tourist_ugid).first()
@@ -455,6 +465,19 @@ class IncidentManager:
                 if alt is not None:
                     t.altitude = alt
                 db.commit()
+
+            # Dynamic anchor recalibration for UAV and Rescue Base
+            if uav_sim.status == "STANDBY":
+                uav_sim.base_lat = round(lat + 0.0070, 6)
+                uav_sim.base_lon = round(lon + 0.0115, 6)
+                uav_sim.lat = uav_sim.base_lat
+                uav_sim.lon = uav_sim.base_lon
+
+            if rescue_sim.status == "STANDBY":
+                rescue_sim.base_lat = round(lat + 0.0058, 6)
+                rescue_sim.base_lon = round(lon + 0.0095, 6)
+                rescue_sim.lat = rescue_sim.base_lat
+                rescue_sim.lon = rescue_sim.base_lon
         finally:
             db.close()
 

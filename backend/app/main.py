@@ -142,8 +142,13 @@ async def websocket_endpoint(websocket: WebSocket):
                     ay = msg.get("accel_y")
                     az = msg.get("accel_z")
                     g_force = msg.get("g_force")
+                    battery_pct = msg.get("battery_pct")
+                    charging = msg.get("charging", False)
+
                     if g_force is not None:
                         sensor_sim.update_live_telemetry(ax, ay, az, g_force)
+                    if battery_pct is not None:
+                        sensor_sim.update_live_battery(battery_pct, charging)
                     if lat is not None and lon is not None:
                         incident_manager.update_tourist_gps(float(lat), float(lon), float(alt) if alt is not None else None)
 

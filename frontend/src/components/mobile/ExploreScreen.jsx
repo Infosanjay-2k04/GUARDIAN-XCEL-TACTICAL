@@ -34,8 +34,32 @@ function createSelfIcon(threatLevel) {
   });
 }
 
+function ExploreMapController({ center }) {
+  const map = useMap();
+  useEffect(() => {
+    if (center && center[0] && center[1]) {
+      map.setView(center, 14, { animate: true });
+    }
+  }, [center, map]);
+  return null;
+}
+
 export default function ExploreScreen() {
-  const { tourist, tourists_list, active_incident, uav } = useSystem();
+  const { tourist, tourists_list, active_incident, uav, geofence_safe, geofence_hazard, landmarks } = useSystem();
+
+  const safeCoords = geofence_safe || [
+    [tourist.current_lat + 0.0080, tourist.current_lon - 0.0120],
+    [tourist.current_lat + 0.0095, tourist.current_lon + 0.0090],
+    [tourist.current_lat - 0.0075, tourist.current_lon + 0.0105],
+    [tourist.current_lat - 0.0090, tourist.current_lon - 0.0110]
+  ];
+
+  const hazardCoords = geofence_hazard || [
+    [tourist.current_lat - 0.0010, tourist.current_lon - 0.0035],
+    [tourist.current_lat + 0.0015, tourist.current_lon + 0.0015],
+    [tourist.current_lat - 0.0030, tourist.current_lon + 0.0025],
+    [tourist.current_lat - 0.0045, tourist.current_lon - 0.0020]
+  ];
 
   const inSafeZone = true; // In a real system, would do polygon point-in-polygon check
   const nearHazard = false;
@@ -48,7 +72,7 @@ export default function ExploreScreen() {
           <MapPin className="w-3.5 h-3.5 text-tactical-cyan" />
           TERRAIN & SAFETY MAP
         </span>
-        <span className="text-tactical-muted">SECTOR YOSEMITE-ALPHA</span>
+        <span className="text-tactical-muted">LIVE GPS RADAR</span>
       </div>
 
       {/* Map */}
@@ -67,13 +91,14 @@ export default function ExploreScreen() {
           className="w-full h-full"
           attributionControl={false}
         >
+          <ExploreMapController center={[tourist.current_lat, tourist.current_lon]} />
           <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" maxZoom={19} />
 
           {/* Safe zone */}
-          <Polygon positions={SAFE_COORDS} pathOptions={{ color: '#00ff9d', fillColor: '#00ff9d', fillOpacity: 0.06, weight: 1.5, dashArray: '5,4' }} />
+          <Polygon positions={safeCoords} pathOptions={{ color: '#00ff9d', fillColor: '#00ff9d', fillOpacity: 0.06, weight: 1.5, dashArray: '5,4' }} />
 
           {/* Hazard zone */}
-          <Polygon positions={HAZARD_COORDS} pathOptions={{ color: '#ff2255', fillColor: '#ff2255', fillOpacity: 0.13, weight: 1.5 }} />
+          <Polygon positions={hazardCoords} pathOptions={{ color: '#ff2255', fillColor: '#ff2255', fillOpacity: 0.13, weight: 1.5 }} />
 
           {/* Self marker */}
           <Marker position={[tourist.current_lat, tourist.current_lon]} icon={createSelfIcon(tourist.threat_level)}>
@@ -86,15 +111,17 @@ export default function ExploreScreen() {
           </Marker>
 
           {/* Ranger HQ */}
-          <Marker
-            position={[37.7485, -119.5870]}
-            icon={L.divIcon({
-              className: '',
-              html: `<div style="background:#0d1d3a;border:1px solid #38bdf8;padding:1px 5px;border-radius:3px;font-family:monospace;font-size:8px;color:#38bdf8;white-space:nowrap;font-weight:bold;">RANGER HQ</div>`,
-              iconSize: [70, 18],
-              iconAnchor: [35, 9]
-            })}
-          />
+          {landmarks?.ranger_hq && (
+            <Marker
+              position={[landmarks.ranger_hq.lat, landmarks.ranger_hq.lon]}
+              icon={L.divIcon({
+                className: '',
+                html: `<div style="background:#0d1d3a;border:1px solid #38bdf8;padding:1px 5px;border-radius:3px;font-family:monospace;font-size:8px;color:#38bdf8;white-space:nowrap;font-weight:bold;">RANGER HQ</div>`,
+                iconSize: [70, 18],
+                iconAnchor: [35, 9]
+              })}
+            />
+          )}
 
           {/* Nearby tourists */}
           {tourists_list?.filter(t => t.ugid !== tourist.ugid).map(t => (

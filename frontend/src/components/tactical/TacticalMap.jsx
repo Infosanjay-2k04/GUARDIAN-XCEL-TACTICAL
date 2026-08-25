@@ -22,7 +22,10 @@ export default function TacticalMap({ embedded = false }) {
     rescue_team, 
     active_incident, 
     selectedUgid, 
-    setSelectedUgid 
+    setSelectedUgid,
+    geofence_safe,
+    geofence_hazard,
+    landmarks
   } = useSystem();
 
   // Create custom DivIcons for high-tech tactical rendering
@@ -129,21 +132,21 @@ export default function TacticalMap({ embedded = false }) {
     });
   };
 
-  const defaultCenter = [37.7455, -119.5936];
+  const defaultCenter = [tourist.current_lat, tourist.current_lon];
 
-  // Geofence Polygons
-  const safeCoords = [
-    [37.7520, -119.6050],
-    [37.7540, -119.5800],
-    [37.7380, -119.5780],
-    [37.7350, -119.6030]
+  // Geofence Polygons dynamically calibrated to current tourist anchor
+  const safeCoords = geofence_safe || [
+    [tourist.current_lat + 0.0080, tourist.current_lon - 0.0120],
+    [tourist.current_lat + 0.0095, tourist.current_lon + 0.0090],
+    [tourist.current_lat - 0.0075, tourist.current_lon + 0.0105],
+    [tourist.current_lat - 0.0090, tourist.current_lon - 0.0110]
   ];
 
-  const hazardCoords = [
-    [37.7410, -119.6010],
-    [37.7435, -119.5960],
-    [37.7390, -119.5950],
-    [37.7375, -119.5995]
+  const hazardCoords = geofence_hazard || [
+    [tourist.current_lat - 0.0010, tourist.current_lon - 0.0035],
+    [tourist.current_lat + 0.0015, tourist.current_lon + 0.0015],
+    [tourist.current_lat - 0.0030, tourist.current_lon + 0.0025],
+    [tourist.current_lat - 0.0045, tourist.current_lon - 0.0020]
   ];
 
   // Flight vectors
@@ -249,9 +252,15 @@ export default function TacticalMap({ embedded = false }) {
         />
 
         {/* Landmarks */}
-        <Marker position={[37.7485, -119.5870]} icon={createLandmarkIcon('RANGER HQ', '#38bdf8')} />
-        <Marker position={[37.7490, -119.5860]} icon={createLandmarkIcon('UAV PAD 01', '#00f0ff')} />
-        <Marker position={[37.7478, -119.5880]} icon={createLandmarkIcon('RESCUE OUTPOST', '#fbbf24')} />
+        {landmarks?.ranger_hq && (
+          <Marker position={[landmarks.ranger_hq.lat, landmarks.ranger_hq.lon]} icon={createLandmarkIcon('RANGER HQ', '#38bdf8')} />
+        )}
+        {landmarks?.uav_hangar && (
+          <Marker position={[landmarks.uav_hangar.lat, landmarks.uav_hangar.lon]} icon={createLandmarkIcon('UAV PAD 01', '#00f0ff')} />
+        )}
+        {landmarks?.rescue_station && (
+          <Marker position={[landmarks.rescue_station.lat, landmarks.rescue_station.lon]} icon={createLandmarkIcon('RESCUE OUTPOST', '#fbbf24')} />
+        )}
 
         {/* All Monitored Tourists */}
         {tourists_list?.map(t => (

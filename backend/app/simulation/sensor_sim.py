@@ -25,6 +25,10 @@ class SensorSimulator:
         self.live_az = az or 0.98
         self.live_g = g or 1.0
 
+    def update_live_battery(self, battery_pct: int, charging: bool = False):
+        if battery_pct is not None:
+            self.battery_pct = max(0, min(100, int(battery_pct)))
+
     def set_mode(self, mode: str):
         self.mode = mode
         self.live_override = False
