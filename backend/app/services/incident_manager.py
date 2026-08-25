@@ -13,7 +13,7 @@ from app.simulation.uav_flight_sim import uav_sim
 from app.simulation.thermal_vision_sim import thermal_sim
 from app.simulation.ground_team_sim import rescue_sim
 from app.services.alert_dispatcher import dispatcher, departmental_engine
-from app.services.ugid_service import ugid_service
+from app.services.ugid_service import ugid_service, forensic_ledger
 
 # Initialize tables
 Base.metadata.create_all(bind=engine)
@@ -415,6 +415,18 @@ class IncidentManager:
                 "comms": lora_data,
                 "active_incident": active_inc_dict,
                 "departmental_dispatches": dispatches,
+                "forensic_ledger": forensic_ledger.get_recent_blocks(15),
+                "forensic_audit": forensic_ledger.verify_integrity(),
+                "terrain_profile": {
+                    "tourist_elevation_m": round(tourist_dict.get("altitude", 1240.0), 1),
+                    "outpost_elevation_m": 1180.0,
+                    "delta_elevation_m": round(tourist_dict.get("altitude", 1240.0) - 1180.0, 1),
+                    "transit_distance_km": 1.42,
+                    "slope_gradient_deg": 18.4,
+                    "terrain_ruggedness_index": 0.82,
+                    "difficulty_rating": "GRADE-4 HIGH-CLEARANCE OFF-ROAD",
+                    "canopy_density_pct": 68
+                },
                 "recent_events": events_list,
                 "demo_step": self.demo_step,
                 "demo_status_text": self.demo_status_text,
@@ -440,7 +452,7 @@ class IncidentManager:
             db.close()
 
     def add_timeline_log(self, incident_id: Optional[int], event_type: str, title: str, description: str, source: str = "TACTICAL_HUB"):
-        """Creates a timestamped cryptographic log entry"""
+        """Creates a timestamped cryptographic log entry and chains it to the forensic blockchain ledger"""
         db: Session = SessionLocal()
         try:
             now_str = str(datetime.datetime.utcnow())
@@ -454,6 +466,13 @@ class IncidentManager:
             )
             db.add(ev)
             db.commit()
+
+            # Record in cryptographic forensic ledger
+            t = db.query(Tourist).filter(Tourist.ugid == self.current_tourist_ugid).first()
+            lat = t.current_lat if t else 37.7420
+            lon = t.current_lon if t else -119.5975
+            threat = t.threat_level if t else "NORMAL"
+            forensic_ledger.add_block(self.current_tourist_ugid, lat, lon, threat, event_type, f"{title} // {description}")
         finally:
             db.close()
 

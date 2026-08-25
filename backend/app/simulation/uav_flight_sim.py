@@ -310,7 +310,13 @@ class UAVFlightSimulator:
             "heading_deg": round(self.heading_deg, 1),
             "pitch_deg": round(self.pitch_deg, 1),
             "roll_deg": round(self.roll_deg, 1),
-            "throttle_pct": round(self.throttle_pct, 1),
+            "climb_rate_mps": round(self.climb_rate_mps, 2),
+            "energy_consumption_wh_per_km": round(
+                ((21.6 + (self.battery_pct / 100.0) * 3.6) * (12.4 + (self.throttle_pct / 100.0) * 28.0)) / max(1.0, self.airspeed_mps * 3.6), 1
+            ) if self.airspeed_mps > 1.0 else 0.0,
+            "haversine_distance_to_target_m": round(
+                self._haversine_distance(self.lat, self.lon, self.target_lkp_lat or self.lat, self.target_lkp_lon or self.lon), 1
+            ),
             "search_pattern": self.search_pattern,
             "search_progress_pct": round(self.search_progress_pct, 1),
             "target_locked": self.target_locked,
