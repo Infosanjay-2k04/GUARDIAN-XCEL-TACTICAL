@@ -722,6 +722,9 @@ class IncidentManager:
             while rescue_sim.status == "DISPATCHED":
                 await asyncio.sleep(0.5)
 
+            # Brief pause on scene for medical triage
+            await asyncio.sleep(2.5)
+
             # Step 10: Rescue Completed & Incident Resolved
             self.demo_step = 10
             self.demo_status_text = "STEP 10/10: VICTIM SECURED // INCIDENT RESOLVED // DEMO COMPLETE"
