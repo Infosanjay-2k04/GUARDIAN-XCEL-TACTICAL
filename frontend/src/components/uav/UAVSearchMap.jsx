@@ -164,12 +164,24 @@ export default function UAVSearchMap() {
           {/* Expanding Square Search Pattern Trajectory Line */}
           {(uav.status === 'SEARCHING' || uav.status === 'TARGET_LOCKED') && (
             <Polyline
-              positions={searchPatternPoints}
+              positions={uav.search_waypoints && uav.search_waypoints.length > 0 ? uav.search_waypoints : searchPatternPoints}
               pathOptions={{
                 color: '#00f0ff',
                 weight: 1.5,
-                dashArray: '3, 4',
-                opacity: 0.7
+                dashArray: '4, 4',
+                opacity: 0.75
+              }}
+            />
+          )}
+
+          {/* Real-time Breadcrumb Flight Trail Vector */}
+          {uav.flight_trail && uav.flight_trail.length > 1 && (
+            <Polyline
+              positions={uav.flight_trail}
+              pathOptions={{
+                color: '#38bdf8',
+                weight: 2.5,
+                opacity: 0.9
               }}
             />
           )}
@@ -179,10 +191,10 @@ export default function UAVSearchMap() {
             <Polyline
               positions={flightPath}
               pathOptions={{
-                color: '#ffb700',
-                weight: 2,
-                dashArray: '5, 5',
-                opacity: 0.9
+                color: '#00f0ff',
+                weight: 1.5,
+                dashArray: '2, 3',
+                opacity: 0.5
               }}
             />
           )}
