@@ -12,7 +12,7 @@ from app.simulation.lora_sim import lora_sim
 from app.simulation.uav_flight_sim import uav_sim
 from app.simulation.thermal_vision_sim import thermal_sim
 from app.simulation.ground_team_sim import rescue_sim
-from app.services.alert_dispatcher import dispatcher
+from app.services.alert_dispatcher import dispatcher, departmental_engine
 from app.services.ugid_service import ugid_service
 
 # Initialize tables
@@ -395,6 +395,8 @@ class IncidentManager:
                 for ev in events
             ]
 
+            dispatches = departmental_engine.generate_dispatches(active_inc_dict, tourist_dict, rescue_state)
+
             return {
                 "type": "STATE_UPDATE",
                 "timestamp": datetime.datetime.utcnow().isoformat(),
@@ -412,6 +414,7 @@ class IncidentManager:
                 "thermal_vision": thermal_metadata,
                 "comms": lora_data,
                 "active_incident": active_inc_dict,
+                "departmental_dispatches": dispatches,
                 "recent_events": events_list,
                 "demo_step": self.demo_step,
                 "demo_status_text": self.demo_status_text,

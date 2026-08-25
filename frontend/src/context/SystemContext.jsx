@@ -212,6 +212,60 @@ export function SystemProvider({ children }) {
       packet_loss_pct: 0.2
     },
     active_incident: null,
+    departmental_dispatches: {
+      is_emergency_active: false,
+      timestamp: '00:00:00',
+      police: {
+        dept_code: 'LAW_ENFORCEMENT_PD',
+        agency_name: 'Regional Tactical Police Dispatch (Sector 4)',
+        callsign: 'INTERCEPT-710 // PURSUIT-ALPHA',
+        status: 'STANDBY_MONITORING',
+        status_label: 'PATROL STANDBY',
+        target_ugid: 'GX-8921-ALPHA',
+        target_coordinates: '37.74200°N, 119.59750°W',
+        velocity_vector: 'G-Force: 1.0g | Heading: 214° SW',
+        emergency_contact: '+1 (555) 019-2834',
+        dispatch_priority: 'ROUTINE',
+        encrypted_channel: 'AES-256-GCM // FREQ 155.475 MHz',
+        recipient_station: 'CENTRAL POLICE PRECINCT // SECTOR 4 INTERCEPT HUB',
+        sha256_hash: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'
+      },
+      medical: {
+        dept_code: 'MEDICAL_TRAUMA_FASTTRACK',
+        agency_name: 'Emergency Medical Services / Mercy Trauma Center',
+        callsign: 'MEDIC-33 // ADVANCED-LIFE-SUPPORT',
+        hospital_recipient: 'MERCY LEVEL-1 TRAUMA CENTER (TRIAGE BAY 02)',
+        status: 'STANDBY_MONITORING',
+        status_label: 'STANDBY',
+        target_ugid: 'GX-8921-ALPHA',
+        blood_type: 'O-POS',
+        known_allergies: 'Penicillin (Severe Anaphylaxis Risk)',
+        medical_vault_notes: 'Penicillin Allergy / No Chronic Conditions',
+        ambulance_unit: 'AMBULANCE ECHO-33',
+        ambulance_eta: '--',
+        dispatch_priority: 'ROUTINE',
+        encrypted_channel: 'HIPAA-SECURE TLS 1.3 // MED-COM 462.950 MHz',
+        sha256_hash: 'a591a6d40bf420404a011733cfb7b190d62c65bf0bcda32b57b277d9ad9f146e'
+      },
+      sar: {
+        dept_code: 'GROUND_SAR_FOREST',
+        agency_name: 'Mountain & Wilderness Search and Rescue Division',
+        callsign: 'TACTICAL ALL-TERRAIN UNIT ECHO-4',
+        status: 'OUTPOST_STANDBY',
+        status_label: 'OUTPOST STANDBY',
+        target_ugid: 'GX-8921-ALPHA',
+        terrain_entry_point: 'TRAILHEAD ACCESS GATE BRAVO (GRID 37-119)',
+        lkp_coordinates: '37.74200°N, 119.59750°W',
+        altitude_asl: '1240.0m ASL',
+        assigned_vehicle: 'Echo-4 Polaris Ranger High-Clearance ATV',
+        rescue_team_eta: '--',
+        dispatch_priority: 'ROUTINE',
+        encrypted_channel: 'LORA 868MHz TACTICAL MESH // DMR TIER III',
+        recipient_station: 'RANGER RESCUE OUTPOST // SECTOR ALPHA',
+        sha256_hash: '5b1b68a96d19a4e326b48450f3b438b4df568ff62886f78ee9d4cb7c73228a05'
+      },
+      encryption_standard: 'AES-256-GCM + SHA-256 FORENSIC AUDIT TRAIL'
+    },
     recent_events: [],
     demo_step: 0,
     demo_status_text: 'SYSTEM READY // NORMAL MONITORING',
@@ -261,9 +315,12 @@ export function SystemProvider({ children }) {
               thermal_vision: data.thermal_vision || prev.thermal_vision,
               comms: data.comms || prev.comms,
               active_incident: data.active_incident,
+              departmental_dispatches: data.departmental_dispatches || prev.departmental_dispatches,
               recent_events: data.recent_events || prev.recent_events,
               demo_step: data.demo_step,
               demo_status_text: data.demo_status_text,
+              geofence_safe: data.geofence_safe || prev.geofence_safe,
+              geofence_hazard: data.geofence_hazard || prev.geofence_hazard,
               landmarks: data.landmarks || prev.landmarks
             }));
 

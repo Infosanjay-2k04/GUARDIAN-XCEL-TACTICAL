@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useSystem } from '../../context/SystemContext';
-import { ShieldAlert, CheckCircle2, Truck, Navigation, Clock, Radio, Key, Crosshair, MapPin } from 'lucide-react';
+import { ShieldAlert, CheckCircle2, Truck, Navigation, Clock, Radio, Key, Crosshair, MapPin, Send, Layers } from 'lucide-react';
 import DroneIcon from '../common/DroneIcon';
 import StatusBadge from '../common/StatusBadge';
+import MultiDeptEscalationPanel from './MultiDeptEscalationPanel';
 
 export default function ActiveIncidentPanel() {
   const { 
@@ -16,17 +17,40 @@ export default function ActiveIncidentPanel() {
     resolveIncident 
   } = useSystem();
 
+  const [viewTab, setViewTab] = useState('multi_dept'); // 'overview' | 'multi_dept'
+
   return (
     <div className="tactical-box p-3 rounded border border-tactical-border/90 bg-tactical-dark/95 flex flex-col h-full gap-2.5">
-      {/* Header */}
+      {/* Header with Tab Switcher */}
       <div className="flex items-center justify-between border-b border-tactical-border/60 pb-1.5 text-xs font-mono font-bold text-slate-200">
-        <span className="flex items-center gap-1.5 text-rose-400">
-          <ShieldAlert className="w-4 h-4 text-rose-500" />
-          ACTIVE INCIDENT
-        </span>
+        <div className="flex items-center gap-2">
+          <span className="flex items-center gap-1.5 text-rose-400">
+            <ShieldAlert className="w-4 h-4 text-rose-500" />
+            INCIDENT TRIAGE
+          </span>
+          <div className="flex items-center bg-tactical-card rounded p-0.5 border border-tactical-border text-[9px]">
+            <button
+              onClick={() => setViewTab('multi_dept')}
+              className={`px-1.5 py-0.5 rounded font-bold transition-all ${
+                viewTab === 'multi_dept' ? 'bg-tactical-cyan text-black' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              MULTI-DEPT (3)
+            </button>
+            <button
+              onClick={() => setViewTab('overview')}
+              className={`px-1.5 py-0.5 rounded font-bold transition-all ${
+                viewTab === 'overview' ? 'bg-tactical-cyan text-black' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              OVERVIEW
+            </button>
+          </div>
+        </div>
+
         {active_incident ? (
           <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-rose-950/60 border border-rose-500 text-rose-300 font-bold animate-pulse">
-            CRITICAL EVENT
+            CRITICAL
           </span>
         ) : (
           <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-emerald-950/40 border border-emerald-500/40 text-emerald-400 font-bold">
@@ -35,8 +59,12 @@ export default function ActiveIncidentPanel() {
         )}
       </div>
 
-      {active_incident ? (
-        <div className="space-y-2.5 flex-1 flex flex-col justify-between overflow-y-auto">
+      {viewTab === 'multi_dept' ? (
+        <div className="flex-1 overflow-y-auto pr-1">
+          <MultiDeptEscalationPanel />
+        </div>
+      ) : active_incident ? (
+        <div className="space-y-2.5 flex-1 flex flex-col justify-between overflow-y-auto pr-1">
           {/* Incident Overview Card */}
           <div className="p-2.5 rounded border border-rose-500/60 bg-rose-950/25 space-y-2">
             <div className="flex items-center justify-between">
@@ -99,51 +127,38 @@ export default function ActiveIncidentPanel() {
             <div className="text-[9px] font-mono text-tactical-muted font-bold uppercase">
               TACTICAL OVERRIDE DISPATCH
             </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => dispatchUav(active_incident.id)}
+                className="flex items-center justify-center gap-1.5 p-2 rounded bg-cyan-950/60 hover:bg-cyan-900/60 border border-cyan-500/60 text-cyan-300 font-mono text-xs font-bold transition-all active:scale-95 shadow-cyan-glow"
+              >
+                <DroneIcon className="w-3.5 h-3.5" />
+                SCRAMBLE UAV
+              </button>
 
-            <button
-              onClick={() => dispatchUav(active_incident.id)}
-              disabled={uav.status !== 'STANDBY'}
-              className={`w-full flex items-center justify-center gap-2 p-2 rounded text-xs font-mono font-bold uppercase tracking-wider transition-all ${
-                uav.status === 'STANDBY'
-                  ? 'bg-tactical-card hover:bg-tactical-cardHover border border-tactical-cyan text-tactical-cyan shadow-cyan-glow'
-                  : 'bg-slate-900 border border-slate-800 text-slate-600 cursor-not-allowed'
-              }`}
-            >
-              <DroneIcon className="w-4 h-4 text-tactical-cyan" />
-              {uav.status === 'STANDBY' ? 'SCRAMBLE UAV-ALPHA TO LKP' : `UAV STATUS: ${uav.status}`}
-            </button>
-
-            <button
-              onClick={() => dispatchRescue(active_incident.id)}
-              disabled={!active_incident.target_lat || rescue_team.status !== 'STANDBY'}
-              className={`w-full flex items-center justify-center gap-2 p-2 rounded text-xs font-mono font-bold uppercase tracking-wider transition-all ${
-                active_incident.target_lat && rescue_team.status === 'STANDBY'
-                  ? 'bg-amber-950/60 hover:bg-amber-900 border border-amber-500 text-amber-400 shadow-amber-glow'
-                  : 'bg-slate-900 border border-slate-800 text-slate-600 cursor-not-allowed'
-              }`}
-            >
-              <Truck className="w-4 h-4" />
-              {rescue_team.status === 'STANDBY'
-                ? active_incident.target_lat ? 'DISPATCH GROUND RESCUE (ECHO-4)' : 'AWAITING FLIR TARGET LOCK'
-                : `GROUND RESCUE: ${rescue_team.status}`}
-            </button>
+              <button
+                onClick={() => dispatchRescue(active_incident.id)}
+                className="flex items-center justify-center gap-1.5 p-2 rounded bg-amber-950/60 hover:bg-amber-900/60 border border-amber-500/60 text-amber-300 font-mono text-xs font-bold transition-all active:scale-95 shadow-amber-glow"
+              >
+                <Truck className="w-3.5 h-3.5" />
+                DISPATCH RESCUE
+              </button>
+            </div>
 
             <button
               onClick={() => resolveIncident(active_incident.id)}
-              className="w-full flex items-center justify-center gap-2 p-2 rounded bg-emerald-950/60 hover:bg-emerald-900 border border-emerald-500/80 text-emerald-400 text-xs font-mono font-bold uppercase tracking-wider transition-all"
+              className="w-full flex items-center justify-center gap-1.5 p-2 rounded bg-emerald-950/40 hover:bg-emerald-900/40 border border-emerald-500/50 text-emerald-300 font-mono text-xs font-bold transition-all active:scale-95"
             >
-              <CheckCircle2 className="w-4 h-4" />
+              <CheckCircle2 className="w-3.5 h-3.5" />
               MARK INCIDENT RESOLVED
             </button>
           </div>
         </div>
       ) : (
-        <div className="flex-1 flex flex-col items-center justify-center text-center p-4 text-slate-500 space-y-2">
-          <CheckCircle2 className="w-12 h-12 text-emerald-500/40" />
-          <div className="font-mono text-xs text-slate-300 font-bold">ALL SECTORS NOMINAL</div>
-          <div className="font-mono text-[10px] text-slate-500 max-w-[200px]">
-            No active distress beacons. Automated anomaly watchers scanning 4 registered tourist streams.
-          </div>
+        <div className="flex-1 flex flex-col items-center justify-center text-center p-4 border border-dashed border-tactical-border/60 rounded bg-tactical-card/40 font-mono space-y-2">
+          <ShieldAlert className="w-8 h-8 text-emerald-400" />
+          <div className="text-xs font-bold text-slate-200">SECTOR ALPHA SECURE</div>
+          <div className="text-[10px] text-tactical-muted">All registered hikers within safety geofence boundaries. Normal vitals.</div>
         </div>
       )}
     </div>

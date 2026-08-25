@@ -127,6 +127,26 @@ export default function EmergencyOverlay() {
         </div>
       </div>
 
+      {/* ===== MULTI-DEPARTMENT AUTONOMOUS ESCALATIONS ===== */}
+      <div className="space-y-1.5 p-2.5 rounded bg-tactical-dark border border-tactical-border/80 font-mono">
+        <div className="text-[9px] font-bold text-slate-300 uppercase flex items-center justify-between">
+          <span>DEPARTMENTAL DISPATCHES:</span>
+          <span className="text-emerald-400 text-[8px]">AES-256 SECURED</span>
+        </div>
+        <div className="p-1.5 rounded bg-blue-950/40 border border-blue-500/50 text-[9px] flex justify-between text-blue-200">
+          <span className="font-bold">Police Intercept:</span>
+          <span>DISPATCHED // EN ROUTE</span>
+        </div>
+        <div className="p-1.5 rounded bg-rose-950/40 border border-rose-500/50 text-[9px] flex justify-between text-rose-200">
+          <span className="font-bold">Medical Fast-Track:</span>
+          <span>Blood Transmitted ({tourist.blood_type || 'O-POS'})</span>
+        </div>
+        <div className="p-1.5 rounded bg-amber-950/40 border border-amber-500/50 text-[9px] flex justify-between text-amber-200">
+          <span className="font-bold">Ground SAR (Echo-4):</span>
+          <span className="font-bold">{isOnScene ? 'ON SCENE' : `ETA: ${(rescue_team.eta_minutes || 3.0).toFixed(1)} MINS`}</span>
+        </div>
+      </div>
+
       {/* ===== RESCUE PIPELINE ===== */}
       <div className="space-y-2">
         <div className="text-[9px] font-mono font-bold text-tactical-muted uppercase">
