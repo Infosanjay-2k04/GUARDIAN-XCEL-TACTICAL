@@ -204,6 +204,34 @@ export default function MobileView({ embedded = false }) {
     setShowGpsOverride(false);
   };
 
+  const triggerImmediateGpsFix = () => {
+    setShowGpsOverride(true);
+    if (typeof window !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const { latitude, longitude, accuracy, altitude } = pos.coords;
+          setRealGpsActive(true);
+          setGpsError(null);
+          setManualLat(latitude);
+          setManualLon(longitude);
+          if (sendLiveSensorData) {
+            sendLiveSensorData({
+              lat: latitude,
+              lon: longitude,
+              accuracy: accuracy ? parseFloat(accuracy.toFixed(1)) : 2.5,
+              altitude: altitude ? parseFloat(altitude.toFixed(1)) : 1240.0
+            });
+          }
+        },
+        (err) => {
+          console.warn('[GPS Immediate Fix] Error:', err.message);
+          setGpsError(err.message);
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    }
+  };
+
   const isCritical = tourist.threat_level === 'CRITICAL';
   const isWarning  = tourist.threat_level === 'WARNING';
   const isLoRa     = comms.channel === 'LORA_MESH';
@@ -267,18 +295,14 @@ export default function MobileView({ embedded = false }) {
                 <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
                 EMERGENCY ACTIVE
               </span>
-            ) : realGpsActive || realMotionActive ? (
-              <span className="flex items-center gap-1 text-emerald-400 font-bold">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                NATIVE SENSORS LIVE
-              </span>
             ) : (
               <button
-                onClick={() => setShowGpsOverride(!showGpsOverride)}
-                className="flex items-center gap-1 text-cyan-400 hover:text-cyan-300 underline font-mono text-[9px]"
+                onClick={triggerImmediateGpsFix}
+                className="flex items-center gap-1 text-emerald-400 hover:text-emerald-300 bg-emerald-950/40 border border-emerald-500/50 px-1.5 py-0.5 rounded font-mono text-[9px] font-bold"
+                title="Click to calibrate / acquire real GPS fix"
               >
-                <MapPin className="w-2.5 h-2.5" />
-                SET GPS
+                <MapPin className="w-2.5 h-2.5 text-emerald-400 animate-pulse" />
+                {realGpsActive ? 'GPS ACTIVE' : 'CALIBRATE GPS'}
               </button>
             )}
           </div>

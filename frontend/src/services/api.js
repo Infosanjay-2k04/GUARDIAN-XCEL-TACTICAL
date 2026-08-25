@@ -1,8 +1,12 @@
 // Dynamically resolve backend host from current window location
 const getApiBase = () => {
-  if (typeof window !== 'undefined' && window.location.hostname) {
-    const protocol = window.location.protocol === 'https:' ? 'https:' : 'http:';
-    return `${protocol}//${window.location.hostname}:8000/api/v1`;
+  if (typeof window !== 'undefined') {
+    if (window.location.protocol === 'https:' || window.location.port === '5173') {
+      return '/api/v1'; // Proxied cleanly through Vite HTTPS/HTTP server
+    }
+    if (window.location.hostname) {
+      return `http://${window.location.hostname}:8000/api/v1`;
+    }
   }
   return '/api/v1';
 };

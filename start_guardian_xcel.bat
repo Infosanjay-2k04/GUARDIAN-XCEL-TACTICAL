@@ -18,8 +18,8 @@ start "Guardian Xcel Backend" cmd /c "cd /d "%~dp0backend" && python run_backend
 :: Wait 2 seconds for backend to initialize
 timeout /t 2 /nobreak >nul
 
-:: 3. Launch React + Vite Tactical Frontend
-echo [3/4] Starting React Tactical Frontend (Port 5173)...
+:: 3. Launch React + Vite Tactical Frontend (HTTPS enabled)
+echo [3/4] Starting React Tactical Frontend (HTTPS Port 5173)...
 start "Guardian Xcel Frontend" cmd /c "cd /d "%~dp0frontend" && npm run dev"
 
 :: Wait 3 seconds for Vite dev server to start
@@ -27,19 +27,20 @@ timeout /t 3 /nobreak >nul
 
 :: 4. Automatically open browser to the Master Presentation Deck
 echo [4/4] Opening Guardian Xcel Master Deck in your browser...
-start http://localhost:5173/deck
+start https://localhost:5173/deck
 
 echo.
 echo =========================================================================
 echo               GUARDIAN XCEL IS NOW LIVE & OPERATIONAL!
 echo =========================================================================
 echo.
-echo Connected Interfaces:
-echo   - [1] Master Presentation Deck : http://localhost:5173/deck
-echo   - [2] Guardian Xcel Mobile PWA  : http://localhost:5173/mobile
-echo   - [3] Tactical Command Center   : http://localhost:5173/tactical
-echo   - [4] UAV Operations & FLIR     : http://localhost:5173/uav
-echo   - [5] Backend REST & Swagger    : http://127.0.0.1:8000/docs
+echo Connected Interfaces (HTTPS Enabled):
+echo   - [1] Master Presentation Deck : https://localhost:5173/deck
+echo   - [2] Guardian Xcel Mobile PWA  : https://localhost:5173/mobile
+echo   - [3] Tactical Command Center   : https://localhost:5173/tactical
+echo   - [4] UAV Operations & FLIR     : https://localhost:5173/uav
+echo   - [5] Mobile Hotspot URL        : https://10.184.45.64:5173/mobile
+echo   - [6] Backend REST & Swagger    : http://127.0.0.1:8000/docs
 echo.
 echo Keep the backend and frontend terminal windows open while testing.
 echo Press any key to exit this launcher window.

@@ -233,7 +233,10 @@ export function SystemProvider({ children }) {
 
     function connectWebSocket() {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.hostname}:8000/ws`;
+      const wsHost = (window.location.port === '5173' || window.location.protocol === 'https:')
+        ? window.location.host
+        : `${window.location.hostname || '127.0.0.1'}:8000`;
+      const wsUrl = `${protocol}//${wsHost}/ws`;
       
       const ws = new WebSocket(wsUrl);
       wsRef.current = ws;
