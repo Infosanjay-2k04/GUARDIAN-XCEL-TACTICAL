@@ -29,6 +29,8 @@ def set_simulation_action(action: str):
     if action == "NORMAL":
         sensor_sim.set_mode("NORMAL_WALK")
         lora_sim.set_channel("CELLULAR_4G")
+    elif action == "ABNORMAL":
+        sensor_sim.set_mode("ABNORMAL")
     elif action == "FALL":
         sensor_sim.set_mode("FALLING")
     elif action == "IMMOBILE":

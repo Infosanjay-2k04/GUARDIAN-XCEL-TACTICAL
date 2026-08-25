@@ -80,6 +80,9 @@ async def websocket_endpoint(websocket: WebSocket):
                         from app.simulation.lora_sim import lora_sim
                         sensor_sim.set_mode("NORMAL_WALK")
                         lora_sim.set_channel("CELLULAR_4G")
+                    elif sim_mode == "ABNORMAL":
+                        from app.simulation.sensor_sim import sensor_sim
+                        sensor_sim.set_mode("ABNORMAL")
                     elif sim_mode == "FALL":
                         from app.simulation.sensor_sim import sensor_sim
                         sensor_sim.set_mode("FALLING")

@@ -41,6 +41,15 @@ class SensorSimulator:
             self.heart_rate = int(75 + 4 * math.sin(elapsed * 0.1) + random.uniform(-2, 2))
             threat_level = "NORMAL"
 
+        elif self.mode == "ABNORMAL":
+            # Irregular agitation / stumble / abnormal movement (1.8g - 2.4g)
+            accel_x = random.uniform(-0.8, 0.9)
+            accel_y = random.uniform(-0.7, 1.2)
+            accel_z = 0.95 + random.uniform(-0.6, 0.8)
+            g_force = math.sqrt(accel_x**2 + accel_y**2 + accel_z**2)
+            self.heart_rate = int(108 + random.uniform(-4, 6))
+            threat_level = "WARNING"
+
         elif self.mode == "FALLING":
             # High impact spike (3.8g - 4.5g)
             accel_x = random.uniform(1.8, 2.4)
