@@ -25,7 +25,10 @@ export default function Header({ currentRoute, setCurrentRoute }) {
   ];
 
   return (
-    <header className="border-b border-tactical-border/70 bg-tactical-darkest/95 backdrop-blur px-4 py-2 flex flex-wrap items-center justify-between gap-3 select-none z-50">
+    <header 
+      className="border-b border-tactical-border/70 bg-tactical-darkest/95 backdrop-blur px-4 py-2 flex flex-wrap items-center justify-between gap-3 select-none"
+      style={{ zIndex: 9999, position: 'relative', pointerEvents: 'auto' }}
+    >
       {/* Brand Title */}
       <div className="flex items-center gap-3">
         <div className="relative flex items-center justify-center w-8 h-8 rounded bg-tactical-card border border-tactical-cyan/40 shadow-cyan-glow">
@@ -41,24 +44,34 @@ export default function Header({ currentRoute, setCurrentRoute }) {
             </span>
           </div>
           <p className="text-[10px] font-mono text-tactical-muted tracking-tight">
-            AUTONOMOUS EMERGENCY DETECTION & DRONE RESCUE COORDINATION
+            AUTONOMOUS EMERGENCY DETECTION &amp; DRONE RESCUE COORDINATION
           </p>
         </div>
       </div>
 
       {/* Interface Navigation Tabs */}
-      <nav className="flex items-center gap-1 bg-tactical-dark/90 p-1 rounded border border-tactical-border">
+      <nav 
+        className="flex items-center gap-1 bg-tactical-dark/90 p-1 rounded border border-tactical-border"
+        style={{ position: 'relative', zIndex: 10000, pointerEvents: 'auto' }}
+      >
         {navItems.map(item => {
           const Icon = item.icon;
           const isActive = currentRoute === item.id;
           return (
             <button
               key={item.id}
-              onClick={() => {
+              type="button"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
                 setCurrentRoute(item.id);
-                window.history.pushState({}, '', item.path);
+                try {
+                  window.history.pushState({}, '', item.path);
+                } catch (err) {
+                  // PushState fallback
+                }
               }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono font-bold tracking-wider transition-all duration-200 ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs font-mono font-bold tracking-wider transition-all duration-200 cursor-pointer ${
                 isActive
                   ? 'bg-tactical-cyan/20 border border-tactical-cyan text-white shadow-cyan-glow'
                   : 'text-slate-400 hover:text-white hover:bg-tactical-card'

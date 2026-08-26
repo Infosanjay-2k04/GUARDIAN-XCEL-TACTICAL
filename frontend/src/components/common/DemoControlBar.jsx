@@ -20,7 +20,10 @@ export default function DemoControlBar({ compact = false }) {
   const isStep3Active = demo_step === 9 || demo_step === 10;
 
   return (
-    <div className="bg-tactical-darkest/95 border-b border-tactical-border/80 px-4 py-2.5 flex flex-col lg:flex-row items-center justify-between gap-3 select-none">
+    <div 
+      className="bg-tactical-darkest/95 border-b border-tactical-border/80 px-4 py-2.5 flex flex-col lg:flex-row items-center justify-between gap-3 select-none"
+      style={{ position: 'relative', zIndex: 9998, pointerEvents: 'auto' }}
+    >
       {/* 3-Step Clean Manual Jury Control Buttons */}
       <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
         <span className="hidden sm:inline-block text-[10px] font-mono font-bold text-tactical-muted uppercase tracking-wider mr-1">

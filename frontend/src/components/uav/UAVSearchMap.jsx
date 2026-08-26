@@ -256,6 +256,7 @@ export default function UAVSearchMap() {
           zoom={16}
           scrollWheelZoom={true}
           className="w-full h-full min-h-[360px]"
+          style={{ position: 'relative', zIndex: 1 }}
         >
           <DroneMapController 
             uavPos={[uavLat, uavLon]} 

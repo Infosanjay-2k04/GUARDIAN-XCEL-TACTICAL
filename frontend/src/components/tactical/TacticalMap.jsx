@@ -295,6 +295,7 @@ export default function TacticalMap({ embedded = false }) {
         zoom={16}
         scrollWheelZoom={true}
         className="w-full h-full min-h-[420px]"
+        style={{ position: 'relative', zIndex: 1 }}
         zoomControl={!embedded}
       >
         <MapController 
