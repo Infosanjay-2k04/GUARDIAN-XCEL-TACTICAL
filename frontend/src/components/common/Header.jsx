@@ -97,11 +97,11 @@ export default function Header({ currentRoute, setCurrentRoute }) {
             <span className="flex items-center gap-1">
               <span
                 className={`w-2 h-2 rounded-full ${
-                  isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-rose-500'
+                  isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-tactical-cyan animate-pulse'
                 }`}
               />
-              <span className={`text-[11px] font-bold ${isConnected ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {isConnected ? 'LIVE WS' : 'OFFLINE'}
+              <span className={`text-[11px] font-bold ${isConnected ? 'text-emerald-400' : 'text-tactical-cyan'}`}>
+                {isConnected ? 'LIVE WS' : 'SIMULATED (LOCAL ENGINE)'}
               </span>
             </span>
           </div>

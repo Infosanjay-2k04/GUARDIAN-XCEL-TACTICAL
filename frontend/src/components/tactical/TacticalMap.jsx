@@ -41,6 +41,24 @@ function MapController({ targetPos, isEmergency, uavPos, isUavFlying }) {
   return null;
 }
 
+// Helper component to auto-reflow Leaflet canvas when switching views
+function MapResizer() {
+  const map = useMap();
+  useEffect(() => {
+    map.invalidateSize();
+    const t1 = setTimeout(() => map.invalidateSize(), 150);
+    const t2 = setTimeout(() => map.invalidateSize(), 450);
+    const handleResize = () => map.invalidateSize();
+    window.addEventListener('resize', handleResize);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [map]);
+  return null;
+}
+
 export default function TacticalMap({ embedded = false }) {
   const {
     tourist,
@@ -298,6 +316,7 @@ export default function TacticalMap({ embedded = false }) {
         style={{ position: 'relative', zIndex: 1 }}
         zoomControl={!embedded}
       >
+        <MapResizer />
         <MapController 
           targetPos={focusPos} 
           isEmergency={isEmergencyActive} 

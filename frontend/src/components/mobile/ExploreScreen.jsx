@@ -47,6 +47,24 @@ function ExploreMapController({ centerLat, centerLon }) {
   return null;
 }
 
+// Helper component to auto-reflow Leaflet canvas when switching views
+function MapResizer() {
+  const map = useMap();
+  useEffect(() => {
+    map.invalidateSize();
+    const t1 = setTimeout(() => map.invalidateSize(), 150);
+    const t2 = setTimeout(() => map.invalidateSize(), 450);
+    const handleResize = () => map.invalidateSize();
+    window.addEventListener('resize', handleResize);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [map]);
+  return null;
+}
+
 export default function ExploreScreen() {
   const { tourist, tourists_list, active_incident, uav, geofence_safe, geofence_hazard, landmarks } = useSystem();
 
@@ -92,8 +110,10 @@ export default function ExploreScreen() {
           scrollWheelZoom={false}
           zoomControl={false}
           className="w-full h-full"
+          style={{ position: 'relative', zIndex: 1 }}
           attributionControl={false}
         >
+          <MapResizer />
           <ExploreMapController centerLat={tourist.current_lat} centerLon={tourist.current_lon} />
           <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" maxZoom={19} />
 

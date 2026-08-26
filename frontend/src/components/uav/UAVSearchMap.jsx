@@ -35,6 +35,24 @@ function DroneMapController({ uavPos, lkpPos, basePadPos, rescuePos, isFlying, i
   return null;
 }
 
+// Helper component to auto-reflow Leaflet canvas when switching views
+function MapResizer() {
+  const map = useMap();
+  useEffect(() => {
+    map.invalidateSize();
+    const t1 = setTimeout(() => map.invalidateSize(), 150);
+    const t2 = setTimeout(() => map.invalidateSize(), 450);
+    const handleResize = () => map.invalidateSize();
+    window.addEventListener('resize', handleResize);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, [map]);
+  return null;
+}
+
 export default function UAVSearchMap() {
   const { uav, active_incident, tourist, rescue_team, landmarks } = useSystem();
 
@@ -258,6 +276,7 @@ export default function UAVSearchMap() {
           className="w-full h-full min-h-[360px]"
           style={{ position: 'relative', zIndex: 1 }}
         >
+          <MapResizer />
           <DroneMapController 
             uavPos={[uavLat, uavLon]} 
             lkpPos={[lkpLat, lkpLon]} 

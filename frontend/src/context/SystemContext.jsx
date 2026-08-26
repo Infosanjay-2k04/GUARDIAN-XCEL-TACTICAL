@@ -508,64 +508,139 @@ export function SystemProvider({ children }) {
   };
 
   // -------------------------------------------------------------
+  // Background Simulated Heartbeat / IMU Engine (Standalone Vercel / Offline)
+  // -------------------------------------------------------------
+  useEffect(() => {
+    const simTicker = setInterval(() => {
+      if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) return;
+      if (isDemoRunningRef.current) return;
+
+      setState(prev => {
+        const isEmergency = prev.tourist.threat_level === 'CRITICAL';
+        const baseHr = isEmergency ? 142 : 76;
+        const hrFlutter = Math.floor(Math.random() * 5) - 2;
+        const currentHr = Math.max(50, Math.min(180, baseHr + hrFlutter));
+        
+        const gForce = isEmergency ? (prev.tourist.g_force || 3.8) : 1.0 + (Math.random() * 0.04 - 0.02);
+        const accelX = isEmergency ? 0.45 : (Math.random() * 0.06 - 0.03);
+        const accelY = isEmergency ? 2.1 : (Math.random() * 0.06 - 0.03);
+        const accelZ = isEmergency ? 3.8 : (0.98 + (Math.random() * 0.04 - 0.02));
+
+        return {
+          ...prev,
+          tourist: {
+            ...prev.tourist,
+            heart_rate: currentHr,
+            g_force: parseFloat(gForce.toFixed(2)),
+            accel_x: parseFloat(accelX.toFixed(2)),
+            accel_y: parseFloat(accelY.toFixed(2)),
+            accel_z: parseFloat(accelZ.toFixed(2))
+          }
+        };
+      });
+
+      setAccelHistory(prev => {
+        const now = Date.now();
+        const last = prev[prev.length - 1];
+        const isEmergency = last?.g > 2.5 || last?.hr > 120;
+        const newPoint = {
+          x: isEmergency ? 0.45 + (Math.random() * 0.1 - 0.05) : (Math.random() * 0.06 - 0.03),
+          y: isEmergency ? 2.1 + (Math.random() * 0.1 - 0.05) : (Math.random() * 0.06 - 0.03),
+          z: isEmergency ? 3.8 + (Math.random() * 0.1 - 0.05) : (0.98 + (Math.random() * 0.04 - 0.02)),
+          g: isEmergency ? 3.8 : 1.0 + (Math.random() * 0.04 - 0.02),
+          hr: isEmergency ? 142 + Math.floor(Math.random() * 4 - 2) : 76 + Math.floor(Math.random() * 4 - 2),
+          time: now
+        };
+        return [...prev.slice(-34), newPoint];
+      });
+    }, 600);
+
+    return () => clearInterval(simTicker);
+  }, []);
+
+  // -------------------------------------------------------------
   // Manual Jury Presentation Triggers (3-Step Fast Workflow)
   // -------------------------------------------------------------
   const triggerManualStep1_SOS = () => {
     clearDemoRunner();
-    setState(prev => ({
-      ...prev,
-      demo_step: 1,
-      demo_status_text: 'STEP 1/3: IMPACT DETECTED (3.8g) // LKP LOCKED AT [11.3831°N, 78.1626°E] (CRITICAL)',
-      tourist: {
-        ...prev.tourist,
-        threat_level: 'CRITICAL',
-        g_force: 3.8,
-        heart_rate: 142,
-        current_lat: VICTIM_LAT,
-        current_lon: VICTIM_LON,
-        accel_x: 0.45,
-        accel_y: 2.1,
-        accel_z: 3.8
-      },
-      comms: {
-        ...prev.comms,
-        channel: 'LORA_MESH',
-        status_text: '868MHz LoRa TACTICAL MESH (FAILOVER ACTIVE)'
-      },
-      active_incident: {
-        id: 1,
-        incident_number: 'INC-20260826-001',
-        status: 'CONFIRMED',
-        severity: 'CRITICAL',
-        ugid: 'GX-8921-ALPHA',
-        trigger_type: 'FALL_DETECTED',
-        lkp_lat: VICTIM_LAT,
-        lkp_lon: VICTIM_LON,
-        target_lat: VICTIM_LAT,
-        target_lon: VICTIM_LON,
-        lkp_altitude: 1240.0,
-        created_at: new Date().toLocaleTimeString()
-      },
-      departmental_dispatches: {
-        ...prev.departmental_dispatches,
-        is_emergency_active: true,
-        police: {
-          ...prev.departmental_dispatches?.police,
-          status: 'DISPATCHED',
-          status_label: 'DISPATCHED // PURSUIT VECTOR ACTIVE'
-        },
-        medical: {
-          ...prev.departmental_dispatches?.medical,
-          status: 'ALERTED',
-          status_label: 'HOSPITAL ALERTED // BLOOD MATCHED'
-        },
-        sar: {
-          ...prev.departmental_dispatches?.sar,
-          status: 'STANDBY',
-          status_label: 'OUTPOST STANDBY'
+    setState(prev => {
+      const newLedger = [
+        ...(prev.forensic_ledger || []),
+        {
+          index: (prev.forensic_ledger?.length || 0) + 1,
+          timestamp: new Date().toLocaleTimeString(),
+          event_type: 'CRITICAL_FALL_SOS',
+          data: 'KINEMATIC_SPIKE: 3.8g | IMMOBILITY > 30s | LKP: 11.3831, 78.1626 | 868MHz LoRa Mesh Failover',
+          merkle_hash: '9f8e7d6c5b4a392817263544566778899aabbccddeeff001122334455667788a',
+          signer: 'GX-HARDWARE-SECURITY-MODULE'
         }
-      }
-    }));
+      ];
+
+      return {
+        ...prev,
+        demo_step: 1,
+        demo_status_text: 'STEP 1/3: IMPACT DETECTED (3.8g) // LKP LOCKED AT [11.3831°N, 78.1626°E] (CRITICAL)',
+        tourist: {
+          ...prev.tourist,
+          threat_level: 'CRITICAL',
+          g_force: 3.8,
+          heart_rate: 142,
+          current_lat: VICTIM_LAT,
+          current_lon: VICTIM_LON,
+          accel_x: 0.45,
+          accel_y: 2.1,
+          accel_z: 3.8
+        },
+        tourists_list: prev.tourists_list?.map((t, idx) => 
+          idx === 0 ? { ...t, threat_level: 'CRITICAL', g_force: 3.8, heart_rate: 142 } : t
+        ) || prev.tourists_list,
+        tourist_stats: {
+          total: 4,
+          safe: 3,
+          at_risk: 0,
+          emergency: 1
+        },
+        comms: {
+          ...prev.comms,
+          channel: 'LORA_MESH',
+          status_text: '868MHz LoRa TACTICAL MESH (FAILOVER ACTIVE)'
+        },
+        active_incident: {
+          id: 1,
+          incident_number: 'INC-20260826-001',
+          status: 'CONFIRMED',
+          severity: 'CRITICAL',
+          ugid: 'GX-8921-ALPHA',
+          trigger_type: 'FALL_DETECTED',
+          lkp_lat: VICTIM_LAT,
+          lkp_lon: VICTIM_LON,
+          target_lat: VICTIM_LAT,
+          target_lon: VICTIM_LON,
+          lkp_altitude: 1240.0,
+          created_at: new Date().toLocaleTimeString()
+        },
+        forensic_ledger: newLedger,
+        departmental_dispatches: {
+          ...prev.departmental_dispatches,
+          is_emergency_active: true,
+          police: {
+            ...prev.departmental_dispatches?.police,
+            status: 'DISPATCHED',
+            status_label: 'DISPATCHED // PURSUIT VECTOR ACTIVE'
+          },
+          medical: {
+            ...prev.departmental_dispatches?.medical,
+            status: 'ALERTED',
+            status_label: 'HOSPITAL ALERTED // BLOOD MATCHED (O-POS)'
+          },
+          sar: {
+            ...prev.departmental_dispatches?.sar,
+            status: 'STANDBY',
+            status_label: 'OUTPOST STANDBY'
+          }
+        }
+      };
+    });
 
     sendWebSocketMessage({ action: 'TRIGGER_SOS', ugid: 'GX-8921-ALPHA', trigger_type: 'FALL_DETECTED' });
     api.triggerSOS('GX-8921-ALPHA', 'FALL_DETECTED').catch(() => {});
@@ -573,56 +648,83 @@ export function SystemProvider({ children }) {
 
   const triggerManualStep2_UAVSearch = () => {
     clearDemoRunner();
-    setState(prev => ({
-      ...prev,
-      demo_step: 2,
-      demo_status_text: 'STEP 2/3: UAV AIRBORNE // FLIR THERMAL TARGET LOCK ACQUIRED (36.8°C)',
-      uav: {
-        ...prev.uav,
-        status: 'TARGET_LOCKED',
-        current_lat: VICTIM_LAT,
-        current_lon: VICTIM_LON,
-        altitude_agl: 45.0,
-        airspeed_mps: 0.0,
-        heading_deg: 214.0,
-        target_locked: true,
-        target_confidence: 98.2,
-        target_lat: VICTIM_LAT,
-        target_lon: VICTIM_LON,
-        target_thermal_temp: 36.8,
-        flight_trail: [[PAD_LAT, PAD_LON], [VICTIM_LAT, VICTIM_LON]]
-      },
-      thermal_vision: {
-        ...prev.thermal_vision,
-        bounding_box: {
-          visible: true,
-          x_pct: 50,
-          y_pct: 48,
-          width_pct: 35,
-          height_pct: 35,
-          label: 'TARGET_LOCKED // VICTIM IDENTIFIED',
-          confidence_pct: 98.2,
-          core_temp_c: 36.8,
-          status: 'LOCKED'
+    setState(prev => {
+      const newLedger = [
+        ...(prev.forensic_ledger || []),
+        {
+          index: (prev.forensic_ledger?.length || 0) + 1,
+          timestamp: new Date().toLocaleTimeString(),
+          event_type: 'UAV_THERMAL_TARGET_LOCKED',
+          data: 'UAV-ALPHA FLIR THERMAL LOCK | LAT: 11.3831 LON: 78.1626 | BODY_TEMP: 36.8°C | CONF: 98.2%',
+          merkle_hash: 'a1b2c3d4e5f60718293a4b5c6d7e8f90123456789abcdef0123456789abcdef0',
+          signer: 'AVIONICS-RTK-NAV-01'
         }
-      },
-      active_incident: prev.active_incident ? {
-        ...prev.active_incident,
-        status: 'TARGET_LOCKED',
-        target_lat: VICTIM_LAT,
-        target_lon: VICTIM_LON
-      } : {
-        id: 1,
-        incident_number: 'INC-20260826-001',
-        status: 'TARGET_LOCKED',
-        severity: 'CRITICAL',
-        ugid: 'GX-8921-ALPHA',
-        lkp_lat: VICTIM_LAT,
-        lkp_lon: VICTIM_LON,
-        target_lat: VICTIM_LAT,
-        target_lon: VICTIM_LON
-      }
-    }));
+      ];
+
+      return {
+        ...prev,
+        demo_step: 2,
+        demo_status_text: 'STEP 2/3: UAV AIRBORNE // FLIR THERMAL TARGET LOCK ACQUIRED (36.8°C)',
+        uav: {
+          ...prev.uav,
+          status: 'TARGET_LOCKED',
+          current_lat: VICTIM_LAT,
+          current_lon: VICTIM_LON,
+          altitude_agl: 45.0,
+          airspeed_mps: 0.0,
+          heading_deg: 214.0,
+          target_locked: true,
+          target_confidence: 98.2,
+          target_lat: VICTIM_LAT,
+          target_lon: VICTIM_LON,
+          target_thermal_temp: 36.8,
+          flight_trail: [[PAD_LAT, PAD_LON], [VICTIM_LAT, VICTIM_LON]]
+        },
+        uav_fleet: prev.uav_fleet?.map((d, idx) => 
+          idx === 0 ? {
+            ...d,
+            status: 'ACTIVE_SEARCH',
+            mission: 'ISRID Expanding Square Search',
+            current_lat: VICTIM_LAT,
+            current_lon: VICTIM_LON,
+            altitude_agl: 45.0,
+            target_locked: true,
+            target_confidence: 98.2
+          } : d
+        ) || prev.uav_fleet,
+        thermal_vision: {
+          ...prev.thermal_vision,
+          bounding_box: {
+            visible: true,
+            x_pct: 50,
+            y_pct: 48,
+            width_pct: 35,
+            height_pct: 35,
+            label: 'TARGET_LOCKED // VICTIM (36.8°C) 98.2%',
+            confidence_pct: 98.2,
+            core_temp_c: 36.8,
+            status: 'LOCKED'
+          }
+        },
+        active_incident: prev.active_incident ? {
+          ...prev.active_incident,
+          status: 'TARGET_LOCKED',
+          target_lat: VICTIM_LAT,
+          target_lon: VICTIM_LON
+        } : {
+          id: 1,
+          incident_number: 'INC-20260826-001',
+          status: 'TARGET_LOCKED',
+          severity: 'CRITICAL',
+          ugid: 'GX-8921-ALPHA',
+          lkp_lat: VICTIM_LAT,
+          lkp_lon: VICTIM_LON,
+          target_lat: VICTIM_LAT,
+          target_lon: VICTIM_LON
+        },
+        forensic_ledger: newLedger
+      };
+    });
 
     sendWebSocketMessage({ action: 'DISPATCH_UAV', incident_id: 1, target_lat: VICTIM_LAT, target_lng: VICTIM_LON });
     api.dispatchUAV(1).catch(() => {});
@@ -630,26 +732,55 @@ export function SystemProvider({ children }) {
 
   const triggerManualStep3_GroundRescue = () => {
     clearDemoRunner();
-    setState(prev => ({
-      ...prev,
-      demo_step: 3,
-      demo_status_text: 'STEP 3/3: GROUND UNIT ECHO-4 ON-SCENE // RESCUE COMPLETE & MERKLE SEALED',
-      rescue_team: {
-        ...prev.rescue_team,
-        status: 'VICTIM_SECURED',
-        current_lat: VICTIM_LAT,
-        current_lon: VICTIM_LON,
-        speed_kmh: 0.0,
-        speed_mps: 0.0,
-        distance_to_target_m: 0.0,
-        eta_seconds: 0,
-        eta_formatted: '00:00'
-      },
-      active_incident: prev.active_incident ? {
-        ...prev.active_incident,
-        status: 'RESOLVED'
-      } : null
-    }));
+    setState(prev => {
+      const newLedger = [
+        ...(prev.forensic_ledger || []),
+        {
+          index: (prev.forensic_ledger?.length || 0) + 1,
+          timestamp: new Date().toLocaleTimeString(),
+          event_type: 'RESCUE_RENDEZVOUS_COMPLETE',
+          data: 'GROUND SAR ECHO-4 ON SCENE | VICTIM SECURED | TRIAGE STABILIZED | MERKLE AUDIT COMMITTED',
+          merkle_hash: 'e4d3c2b1a09f8e7d6c5b4a392817263544566778899aabbccddeeff001122334',
+          signer: 'GROUND-TACTICAL-ECHO-4'
+        }
+      ];
+
+      return {
+        ...prev,
+        demo_step: 3,
+        demo_status_text: 'STEP 3/3: GROUND UNIT ECHO-4 ON-SCENE // RESCUE COMPLETE & MERKLE SEALED',
+        rescue_team: {
+          ...prev.rescue_team,
+          status: 'VICTIM_SECURED',
+          current_lat: VICTIM_LAT,
+          current_lon: VICTIM_LON,
+          speed_kmh: 0.0,
+          speed_mps: 0.0,
+          distance_to_target_m: 0.0,
+          eta_seconds: 0,
+          eta_formatted: '00:00'
+        },
+        active_incident: prev.active_incident ? {
+          ...prev.active_incident,
+          status: 'RESOLVED'
+        } : null,
+        forensic_ledger: newLedger,
+        departmental_dispatches: {
+          ...prev.departmental_dispatches,
+          is_emergency_active: false,
+          sar: {
+            ...prev.departmental_dispatches?.sar,
+            status: 'ON_SCENE',
+            status_label: 'ON SCENE // VICTIM SECURED'
+          },
+          medical: {
+            ...prev.departmental_dispatches?.medical,
+            status: 'TRIAGE_ACTIVE',
+            status_label: 'FIRST AID / TRIAGE COMMENCED'
+          }
+        }
+      };
+    });
 
     sendWebSocketMessage({ action: 'DISPATCH_RESCUE', incident_id: 1 });
     api.dispatchGroundRescue(1).catch(() => {});
