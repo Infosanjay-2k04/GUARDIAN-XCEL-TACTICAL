@@ -3,35 +3,61 @@ import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, Polygon, useM
 import L from 'leaflet';
 import { useSystem } from '../../context/SystemContext';
 
-// Helper component to keep target victim LKP and UAV in active mission viewport focus
-function DroneMapController({ uavPos, lkpPos, isFlying }) {
+// Helper component to auto-fit Base Pad, UAV, Rescue Team and Victim in viewport within 2km boundary
+function DroneMapController({ uavPos, lkpPos, basePadPos, rescuePos, isFlying, isRescueActive }) {
   const map = useMap();
   useEffect(() => {
-    if (lkpPos && lkpPos[0] && lkpPos[1]) {
+    if (basePadPos && lkpPos && (isFlying || isRescueActive) && basePadPos[0] && lkpPos[0]) {
+      // Ensure only valid local points within 2km are bounded
+      const validPoints = [basePadPos, lkpPos, uavPos, rescuePos].filter(
+        pt => pt && pt[0] <= 30 && pt[1] >= 0 && Math.abs(pt[0] - lkpPos[0]) < 0.02 && Math.abs(pt[1] - lkpPos[1]) < 0.02
+      );
+      if (validPoints.length >= 2) {
+        const bounds = L.latLngBounds(validPoints);
+        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 17, animate: true, duration: 0.8 });
+      }
+    } else if (lkpPos && lkpPos[0] && lkpPos[1] && lkpPos[0] <= 30 && lkpPos[1] >= 0) {
       map.setView(lkpPos, 16, { animate: true, duration: 0.8 });
-    } else if (uavPos && uavPos[0] && uavPos[1]) {
-      map.setView(uavPos, 16, { animate: true, duration: 0.8 });
     }
-  }, [lkpPos?.[0], lkpPos?.[1], isFlying, map]);
+  }, [lkpPos?.[0], lkpPos?.[1], basePadPos?.[0], basePadPos?.[1], isFlying, isRescueActive, map]);
   return null;
 }
 
 export default function UAVSearchMap() {
-  const { uav, active_incident, tourist } = useSystem();
+  const { uav, active_incident, tourist, rescue_team, landmarks } = useSystem();
 
   const isFlying = uav.status !== 'STANDBY';
-  const lkpLat = active_incident?.target_lat || active_incident?.lkp_lat || tourist?.current_lat || 37.7420;
-  const lkpLon = active_incident?.target_lon || active_incident?.lkp_lon || tourist?.current_lon || -119.5975;
+  const isRescueActive = ['DISPATCHED', 'EN_ROUTE', 'ON_SCENE', 'VICTIM_SECURED'].includes(rescue_team?.status);
+  
+  // Victim coordinates with regional safety validation
+  const rawLkpLat = active_incident?.target_lat || active_incident?.lkp_lat || tourist?.current_lat || 11.3831;
+  const rawLkpLon = active_incident?.target_lon || active_incident?.lkp_lon || tourist?.current_lon || 78.1626;
+  const lkpLat = (rawLkpLat <= 30 && rawLkpLon >= 0) ? rawLkpLat : 11.3831;
+  const lkpLon = (rawLkpLat <= 30 && rawLkpLon >= 0) ? rawLkpLon : 78.1626;
 
-  const uavLat = uav.current_lat || lkpLat + 0.0018;
-  const uavLon = uav.current_lon || lkpLon + 0.0022;
+  // Dynamic Base Pad 01 and UAV Coordinates
+  const padLat = landmarks?.uav_hangar?.lat || uav.base_lat || 11.3866;
+  const padLon = landmarks?.uav_hangar?.lon || uav.base_lon || 78.1651;
+
+  // When target locked, snap UAV position directly onto the red TARGET LKP marker
+  const isTargetLockedOrFound = uav.target_locked || uav.status === 'TARGET_LOCKED';
+  const rawUavLat = isTargetLockedOrFound ? lkpLat : (uav.current_lat || uav.telemetry?.current_lat || padLat);
+  const rawUavLon = isTargetLockedOrFound ? lkpLon : (uav.current_lon || uav.telemetry?.current_lng || padLon);
+  const uavLat = (rawUavLat <= 30 && rawUavLon >= 0) ? rawUavLat : padLat;
+  const uavLon = (rawUavLat <= 30 && rawUavLon >= 0) ? rawUavLon : padLon;
+
+  // Ground Rescue Team Echo-4 positioning & approach route
+  const rescueOutpostLat = landmarks?.rescue_station?.lat || rescue_team?.base_lat || 11.3785;
+  const rescueOutpostLon = landmarks?.rescue_station?.lon || rescue_team?.base_lon || 78.1595;
+  const rescueLat = rescue_team?.current_lat || rescueOutpostLat;
+  const rescueLon = rescue_team?.current_lon || rescueOutpostLon;
 
   const formatLat = (lat) => `${Math.abs(lat || 0).toFixed(4)}°${(lat || 0) >= 0 ? 'N' : 'S'}`;
   const formatLon = (lon) => `${Math.abs(lon || 0).toFixed(4)}°${(lon || 0) >= 0 ? 'E' : 'W'}`;
 
   // Custom DivIcon for UAV
   const createDroneIcon = (uavState) => {
-    const heading = uavState.heading_deg || 0;
+    const heading = uavState.heading_deg || uavState.telemetry?.heading_deg || 0;
     const isLocked = uavState.target_locked;
     const color = isLocked ? '#00ff9d' : '#00f0ff';
 
@@ -39,19 +65,37 @@ export default function UAVSearchMap() {
       className: 'custom-uav-search-marker',
       html: `
         <div class="relative flex items-center justify-center w-12 h-12">
-          <div class="absolute w-12 h-12 rounded-full border border-cyan-400/50 animate-ping opacity-40"></div>
+          <div class="absolute w-12 h-12 rounded-full border border-cyan-400/50 animate-ping opacity-50"></div>
           <div style="transform: rotate(${heading}deg); transition: transform 0.2s linear;">
-            <svg class="w-8 h-8 filter drop-shadow(0 0 6px ${color})" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.2">
+            <svg class="w-8 h-8 filter drop-shadow(0 0 8px ${color})" viewBox="0 0 24 24" fill="none" stroke="${color}" stroke-width="2.2">
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
             </svg>
           </div>
           <div class="absolute -bottom-4 bg-black/95 border border-cyan-400 px-1.5 py-0.5 rounded text-[8px] font-mono text-cyan-300 font-bold whitespace-nowrap shadow-cyan-glow">
-            ${uavState.altitude_agl}m | ${uavState.airspeed_mps}m/s
+            ${uavState.altitude_agl || 0}m | ${uavState.airspeed_mps || 0}m/s
           </div>
         </div>
       `,
       iconSize: [48, 48],
       iconAnchor: [24, 24]
+    });
+  };
+
+  const createBasePadIcon = () => {
+    return L.divIcon({
+      className: 'custom-base-pad-marker',
+      html: `
+        <div class="relative flex items-center justify-center w-8 h-8">
+          <div class="w-5 h-5 rounded border-2 border-cyan-400 bg-cyan-950/90 flex items-center justify-center text-[8px] font-mono font-bold text-cyan-300 shadow-cyan-glow">
+            H1
+          </div>
+          <div class="absolute -bottom-3.5 bg-black/90 border border-cyan-500/60 px-1 rounded text-[7px] font-mono text-cyan-200 whitespace-nowrap">
+            BASE PAD 01
+          </div>
+        </div>
+      `,
+      iconSize: [32, 32],
+      iconAnchor: [16, 16]
     });
   };
 
@@ -93,6 +137,39 @@ export default function UAVSearchMap() {
     });
   };
 
+  // Distinct Tactical SAR Ground Unit Marker (Echo-4)
+  const createRescueTeamIcon = (rescueState) => {
+    const isEnRoute = rescueState?.status === 'EN_ROUTE' || rescueState?.status === 'DISPATCHED';
+    const isOnScene = rescueState?.status === 'ON_SCENE';
+    const isSecured = rescueState?.status === 'VICTIM_SECURED';
+    const color = isSecured ? '#00ff9d' : isOnScene ? '#00f0ff' : '#ffb700';
+    const badgeLabel = isSecured 
+      ? 'VICTIM_SECURED // TRIAGE_ACTIVE' 
+      : isOnScene 
+      ? 'ON SCENE (ECHO-4)' 
+      : isEnRoute 
+      ? `ECHO-4 (${rescueState?.eta_formatted || rescueState?.eta_seconds + 's'})` 
+      : 'ECHO-4';
+
+    return L.divIcon({
+      className: 'custom-rescue-uav-marker',
+      html: `
+        <div class="relative flex items-center justify-center w-10 h-10">
+          ${isEnRoute ? `<div class="absolute w-10 h-10 rounded-full border-2 border-amber-400 animate-ping opacity-60"></div>` : ''}
+          ${isOnScene || isSecured ? `<div class="absolute w-10 h-10 rounded-full border-2 border-emerald-400 animate-ping opacity-80"></div>` : ''}
+          <div class="w-6 h-6 rounded flex items-center justify-center font-bold text-[10px] text-black shadow-lg" style="background-color: ${color}; border: 1.5px solid #fff;">
+            🚑
+          </div>
+          <div class="absolute -bottom-4 bg-black/95 border px-1.5 py-0.5 rounded text-[7px] font-mono whitespace-nowrap font-bold shadow-md" style="color: ${color}; border-color: ${color};">
+            ${badgeLabel}
+          </div>
+        </div>
+      `,
+      iconSize: [40, 40],
+      iconAnchor: [20, 20]
+    });
+  };
+
   // Generate synthetic expanding square search pattern points around LKP for visual display
   const searchPatternPoints = [
     [lkpLat, lkpLon],
@@ -105,11 +182,24 @@ export default function UAVSearchMap() {
     [lkpLat - 0.0006, lkpLon + 0.0008]
   ];
 
-  // Flight trajectory from drone to LKP
+  // Active mission flight vector connecting Base Pad 01 -> Current Drone -> Victim LKP
   const flightPath = isFlying ? [
+    [padLat, padLon],
     [uavLat, uavLon],
     [lkpLat, lkpLon]
   ] : null;
+
+  // Ground Rescue Pursuit Vector
+  const rescuePath = isRescueActive ? [
+    [rescueOutpostLat, rescueOutpostLon],
+    [rescueLat, rescueLon],
+    [lkpLat, lkpLon]
+  ] : null;
+
+  // Filter trail to avoid stale coordinates from different sectors (exclude lat > 30 or lng < 0)
+  const cleanFlightTrail = (uav.flight_trail || []).filter(
+    pt => pt && pt[0] <= 30 && pt[1] >= 0 && Math.abs(pt[0] - lkpLat) < 0.02 && Math.abs(pt[1] - lkpLon) < 0.02
+  );
 
   return (
     <div className="tactical-box p-3 rounded border border-tactical-border/90 bg-tactical-dark/95 flex flex-col h-full gap-2 relative">
@@ -119,9 +209,16 @@ export default function UAVSearchMap() {
           <span className="w-2 h-2 rounded-full bg-tactical-cyan animate-pulse" />
           AUTONOMOUS SEARCH RADAR &amp; SECTOR MAP
         </span>
-        <span className="text-[10px] text-tactical-muted">
-          PATTERN: {uav.search_pattern}
-        </span>
+        <div className="flex items-center gap-2">
+          {isRescueActive && (
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-950/80 border border-amber-500/60 text-amber-300 font-bold flex items-center gap-1">
+              🚑 ECHO-4: {rescue_team.status} ({rescue_team.eta_formatted || rescue_team.eta_seconds + 's'})
+            </span>
+          )}
+          <span className="text-[10px] text-tactical-muted">
+            PATTERN: {uav.search_pattern}
+          </span>
+        </div>
       </div>
 
       {/* Map Container */}
@@ -137,12 +234,13 @@ export default function UAVSearchMap() {
         {/* Map Telemetry Box Overlay */}
         <div className="absolute top-2 left-2 z-20 bg-tactical-darkest/95 border border-tactical-border px-2.5 py-1.5 rounded text-[10px] font-mono space-y-0.5">
           <div className="text-tactical-cyan font-bold">DRONE GPS: {formatLat(uavLat)}, {formatLon(uavLon)}</div>
+          <div className="text-amber-400 font-bold">ECHO-4 SAR: {formatLat(rescueLat)}, {formatLon(rescueLon)}</div>
           <div className="text-slate-300">TARGET LKP: {formatLat(lkpLat)}, {formatLon(lkpLon)}</div>
-          <div className="text-amber-400 font-bold">MODE: {uav.status}</div>
+          <div className="text-emerald-400 font-bold">AIR / GROUND STATUS: {uav.status} // {rescue_team?.status || 'STANDBY'}</div>
         </div>
 
         <MapContainer
-          center={[lkpLat, lkpLon]}
+          center={[11.3831, 78.1626]}
           zoom={16}
           scrollWheelZoom={true}
           className="w-full h-full min-h-[360px]"
@@ -150,7 +248,10 @@ export default function UAVSearchMap() {
           <DroneMapController 
             uavPos={[uavLat, uavLon]} 
             lkpPos={[lkpLat, lkpLon]} 
-            isFlying={isFlying} 
+            basePadPos={[padLat, padLon]}
+            rescuePos={[rescueLat, rescueLon]}
+            isFlying={isFlying}
+            isRescueActive={isRescueActive}
           />
 
           {/* Dark CartoDB Tiles */}
@@ -159,6 +260,17 @@ export default function UAVSearchMap() {
             url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
             maxZoom={19}
           />
+
+          {/* Base Pad 01 Marker */}
+          <Marker position={[padLat, padLon]} icon={createBasePadIcon()}>
+            <Popup>
+              <div className="font-mono text-xs p-1">
+                <div className="font-bold text-cyan-400">BASE PAD 01</div>
+                <div>Status: OPERATIONAL</div>
+                <div>Coordinates: {formatLat(padLat)}, {formatLon(padLon)}</div>
+              </div>
+            </Popup>
+          </Marker>
 
           {/* Search Radius Circle (120m search envelope) */}
           <Circle
@@ -187,9 +299,9 @@ export default function UAVSearchMap() {
           )}
 
           {/* Real-time Breadcrumb Flight Trail Vector */}
-          {uav.flight_trail && uav.flight_trail.length > 1 && (
+          {cleanFlightTrail.length > 1 && (
             <Polyline
-              positions={uav.flight_trail}
+              positions={cleanFlightTrail}
               pathOptions={{
                 color: '#38bdf8',
                 weight: 2.5,
@@ -198,15 +310,28 @@ export default function UAVSearchMap() {
             />
           )}
 
-          {/* Live Flight Vector from Drone to LKP */}
+          {/* Live Flight Vector from Base Pad -> Drone -> LKP */}
           {flightPath && (
             <Polyline
               positions={flightPath}
               pathOptions={{
                 color: '#00f0ff',
-                weight: 1.5,
-                dashArray: '2, 3',
-                opacity: 0.5
+                weight: 1.8,
+                dashArray: '4, 4',
+                opacity: 0.65
+              }}
+            />
+          )}
+
+          {/* Ground Rescue Approach Route (Amber Dashed) */}
+          {rescuePath && (
+            <Polyline
+              positions={rescuePath}
+              pathOptions={{
+                color: '#ffb700',
+                weight: 2.2,
+                dashArray: '4, 4',
+                opacity: 0.9
               }}
             />
           )}
@@ -221,6 +346,22 @@ export default function UAVSearchMap() {
               icon={createVictimFoundIcon()}
             />
           )}
+
+          {/* Ground Rescue Tactical Unit Echo-4 Marker */}
+          <Marker
+            position={[rescueLat, rescueLon]}
+            icon={createRescueTeamIcon(rescue_team)}
+          >
+            <Popup>
+              <div className="font-mono text-xs p-1">
+                <div className="font-bold text-amber-400">{rescue_team?.team_callsign || 'TACTICAL SAR // ECHO-4'}</div>
+                <div>Status: {rescue_team?.status}</div>
+                <div>Speed: {rescue_team?.speed_kmh || ((rescue_team?.speed_mps || 0) * 3.6).toFixed(1)} km/h</div>
+                <div>ETA: {rescue_team?.eta_formatted || rescue_team?.eta_seconds + 's'}</div>
+                <div>Vehicle: {rescue_team?.unit_type}</div>
+              </div>
+            </Popup>
+          </Marker>
 
           {/* Live UAV Marker */}
           <Marker

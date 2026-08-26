@@ -1,12 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { SystemProvider } from './context/SystemContext';
+import { SystemProvider, useSystem } from './context/SystemContext';
 import Header from './components/common/Header';
 import MobileView from './components/mobile/MobileView';
 import TacticalView from './components/tactical/TacticalView';
 import UAVView from './components/uav/UAVView';
 import CommandDeck from './components/deck/CommandDeck';
+import useVoiceAnnouncer from './hooks/useVoiceAnnouncer';
 
 function MainLayout() {
+  const { demoPhase, tourist } = useSystem();
+  useVoiceAnnouncer(demoPhase, tourist?.threat_level);
+
   const [currentRoute, setCurrentRoute] = useState(() => {
     const path = window.location.pathname.toLowerCase();
     if (path.includes('mobile')) return 'mobile';

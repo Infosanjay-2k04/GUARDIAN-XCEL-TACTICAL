@@ -33,12 +33,14 @@ class TelegramEmergencyNotifier:
         
         inc_num = incident.get("incident_number", "INC-2026-0801")
         ugid = tourist.get("ugid", "GX-8921-ALPHA")
-        lat = tourist.get("current_lat", 37.7420)
-        lon = tourist.get("current_lon", -119.5975)
+        lat = tourist.get("current_lat", 11.3995)
+        lon = tourist.get("current_lon", 78.1614)
         blood_type = tourist.get("blood_type", "O-POS")
         allergies = tourist.get("medical_notes", "Penicillin Allergy (Severe)")
         contact = tourist.get("emergency_contact", "+1 (555) 019-2834")
         
+        hem_lat = 'N' if lat >= 0 else 'S'
+        hem_lon = 'E' if lon >= 0 else 'W'
         maps_link = f"https://www.google.com/maps?q={lat:.5f},{lon:.5f}"
 
         message_text = (
@@ -46,7 +48,7 @@ class TelegramEmergencyNotifier:
             f"📋 *Incident ID:* `{inc_num}`\n"
             f"👤 *Target UGID:* `{ugid}`\n"
             f"⚠️ *Threat Level:* 🔴 *CRITICAL / IMPACT DETECTED*\n"
-            f"📍 *GPS Location:* `{lat:.5f}°N, {abs(lon):.5f}°W`\n"
+            f"📍 *GPS Location:* `{abs(lat):.5f}°{hem_lat}, {abs(lon):.5f}°{hem_lon}`\n"
             f"🗺️ *Live Google Maps:* [Open Coordinate Pin]({maps_link})\n\n"
             f"🩺 *Medical Vault Record:*\n"
             f"• *Blood Group:* `{blood_type}`\n"

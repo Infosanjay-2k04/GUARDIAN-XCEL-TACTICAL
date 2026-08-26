@@ -80,7 +80,7 @@ export default function SearchGridMap() {
         {uav.target_locked && (
           <div className="absolute bottom-2 bg-emerald-950/90 border border-emerald-500 px-2 py-0.5 rounded text-[9px] font-mono text-emerald-300 font-bold flex items-center gap-1 shadow-emerald-glow">
             <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-            TARGET ACQUIRED // 34.0522°N, 118.2437°W
+            TARGET ACQUIRED // {Math.abs(uav.target_lat || 11.3995).toFixed(4)}°{(uav.target_lat || 11.3995) >= 0 ? 'N' : 'S'}, {Math.abs(uav.target_lon || 78.1614).toFixed(4)}°{(uav.target_lon || 78.1614) >= 0 ? 'E' : 'W'}
           </div>
         )}
       </div>

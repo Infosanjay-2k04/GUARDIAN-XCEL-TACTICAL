@@ -40,8 +40,8 @@ class IncidentManager:
                     "emergency_contact": "+1 (555) 019-2834",
                     "blood_type": "O-POS",
                     "medical_notes": "Penicillin Allergy / No Chronic Conditions",
-                    "current_lat": 37.7420,
-                    "current_lon": -119.5975,
+                    "current_lat": 11.3995,
+                    "current_lon": 78.1614,
                     "altitude": 1240.0,
                     "battery_pct": 94,
                     "heart_rate": 76,
@@ -54,8 +54,8 @@ class IncidentManager:
                     "emergency_contact": "+1 (555) 304-9821",
                     "blood_type": "A-POS",
                     "medical_notes": "Asthma (Inhaler equipped)",
-                    "current_lat": 37.7510,
-                    "current_lon": -119.5890,
+                    "current_lat": 11.4010,
+                    "current_lon": 78.1645,
                     "altitude": 1410.0,
                     "battery_pct": 88,
                     "heart_rate": 72,
@@ -68,8 +68,8 @@ class IncidentManager:
                     "emergency_contact": "+1 (555) 672-1140",
                     "blood_type": "B-POS",
                     "medical_notes": "Nil Notable / Experienced Hiker",
-                    "current_lat": 37.7465,
-                    "current_lon": -119.6015,
+                    "current_lat": 11.3970,
+                    "current_lon": 78.1585,
                     "altitude": 1180.0,
                     "battery_pct": 91,
                     "heart_rate": 74,
@@ -82,8 +82,8 @@ class IncidentManager:
                     "emergency_contact": "+1 (555) 918-4422",
                     "blood_type": "O-NEG",
                     "medical_notes": "Type 1 Diabetes (Insulin Carrier)",
-                    "current_lat": 37.7395,
-                    "current_lon": -119.5840,
+                    "current_lat": 11.3960,
+                    "current_lon": 78.1630,
                     "altitude": 1320.0,
                     "battery_pct": 79,
                     "heart_rate": 80,
@@ -167,15 +167,19 @@ class IncidentManager:
                             )
                             db.add(event)
                             db.commit()
+
+                            # Auto-dispatch ground rescue unit on thermal acquisition
+                            if rescue_sim.status == "STANDBY":
+                                self.dispatch_ground_rescue(inc.id)
                     finally:
                         db.close()
 
-                # Check for ground rescue arrival
-                if rescue_sim.status == "ON_SCENE" and self.active_incident_id is not None:
+                # Check for ground rescue arrival and victim secured handoff
+                if rescue_sim.status in ["ON_SCENE", "VICTIM_SECURED"] and self.active_incident_id is not None:
                     db: Session = SessionLocal()
                     try:
                         inc = db.query(Incident).filter(Incident.id == self.active_incident_id).first()
-                        if inc and inc.status == "RESCUE_EN_ROUTE":
+                        if inc and inc.status in ["RESCUE_EN_ROUTE", "TARGET_LOCKED"]:
                             inc.status = "ON_SCENE"
                             now_time = datetime.datetime.now().strftime("%H:%M:%S")
                             event = TimelineEvent(
@@ -185,6 +189,19 @@ class IncidentManager:
                                 description="Echo-4 tactical unit has reached victim coordinates. First aid and stabilization initiated.",
                                 source="RESCUE_UNIT",
                                 cryptographic_hash=TimelineEvent.generate_hash("Ground Arrived", str(datetime.datetime.utcnow()), "RESCUE_UNIT")
+                            )
+                            db.add(event)
+                            db.commit()
+                        elif inc and rescue_sim.status == "VICTIM_SECURED" and inc.status == "ON_SCENE":
+                            inc.status = "VICTIM_SECURED"
+                            now_time = datetime.datetime.now().strftime("%H:%M:%S")
+                            event = TimelineEvent(
+                                incident_id=inc.id,
+                                event_type="VICTIM_SECURED",
+                                title=f"{now_time} — Victim Secured // Triage Active",
+                                description="Victim vitals stabilized by Echo-4 medical specialists. Field triage active.",
+                                source="RESCUE_UNIT",
+                                cryptographic_hash=TimelineEvent.generate_hash("Victim Secured", str(datetime.datetime.utcnow()), "RESCUE_UNIT")
                             )
                             db.add(event)
                             db.commit()
@@ -260,19 +277,23 @@ class IncidentManager:
             emergency_count = 0
 
             for t in all_tourists_db:
-                # If it's the active demo tourist, inject live simulation sensor state
+                # If it's the active demo tourist, inject live simulation sensor state and exact live coordinates
                 if t.ugid == self.current_tourist_ugid:
                     cur_threat = sensor_data["threat_level"]
                     cur_battery = sensor_data["battery_pct"]
                     cur_hr = sensor_data["heart_rate"]
                     cur_g = sensor_data["g_force"]
                     cur_comms = lora_data["channel"]
+                    t_lat = tourist_dict["current_lat"]
+                    t_lon = tourist_dict["current_lon"]
                 else:
                     cur_threat = t.threat_level
                     cur_battery = t.battery_pct
                     cur_hr = t.heart_rate
                     cur_g = t.g_force
                     cur_comms = t.comms_channel
+                    t_lat = t.current_lat
+                    t_lon = t.current_lon
 
                 if cur_threat == "CRITICAL":
                     emergency_count += 1
@@ -288,8 +309,8 @@ class IncidentManager:
                     "emergency_contact": t.emergency_contact,
                     "blood_type": t.blood_type,
                     "medical_notes": t.medical_notes,
-                    "current_lat": t.current_lat,
-                    "current_lon": t.current_lon,
+                    "current_lat": t_lat,
+                    "current_lon": t_lon,
                     "altitude": t.altitude,
                     "battery_pct": cur_battery,
                     "heart_rate": cur_hr,
@@ -469,8 +490,8 @@ class IncidentManager:
 
             # Record in cryptographic forensic ledger
             t = db.query(Tourist).filter(Tourist.ugid == self.current_tourist_ugid).first()
-            lat = t.current_lat if t else 37.7420
-            lon = t.current_lon if t else -119.5975
+            lat = t.current_lat if (t and t.current_lat) else settings.DEFAULT_TOURIST_GPS["lat"]
+            lon = t.current_lon if (t and t.current_lon) else settings.DEFAULT_TOURIST_GPS["lon"]
             threat = t.threat_level if t else "NORMAL"
             forensic_ledger.add_block(self.current_tourist_ugid, lat, lon, threat, event_type, f"{title} // {description}")
         finally:
@@ -490,16 +511,14 @@ class IncidentManager:
 
             # Dynamic anchor recalibration for UAV and Rescue Base
             if uav_sim.status == "STANDBY":
-                uav_sim.base_lat = round(lat + 0.0070, 6)
-                uav_sim.base_lon = round(lon + 0.0115, 6)
+                uav_sim.base_lat = round(lat + 0.0035, 6)
+                uav_sim.base_lon = round(lon + 0.0025, 6)
                 uav_sim.lat = uav_sim.base_lat
                 uav_sim.lon = uav_sim.base_lon
+                uav_sim.flight_trail = [[uav_sim.lat, uav_sim.lon]]
 
             if rescue_sim.status == "STANDBY":
-                rescue_sim.base_lat = round(lat + 0.0058, 6)
-                rescue_sim.base_lon = round(lon + 0.0095, 6)
-                rescue_sim.lat = rescue_sim.base_lat
-                rescue_sim.lon = rescue_sim.base_lon
+                rescue_sim.set_base_location(lat, lon)
         finally:
             db.close()
 
@@ -683,8 +702,12 @@ class IncidentManager:
         db: Session = SessionLocal()
         try:
             inc = db.query(Incident).filter(Incident.id == incident_id).first()
-            target_lat = inc.target_lat if (inc and inc.target_lat) else (uav_sim.target_lat or settings.DEFAULT_TOURIST_GPS["lat"])
-            target_lon = inc.target_lon if (inc and inc.target_lon) else (uav_sim.target_lon or settings.DEFAULT_TOURIST_GPS["lon"])
+            t = db.query(Tourist).filter(Tourist.ugid == self.current_tourist_ugid).first()
+            default_t_lat = t.current_lat if (t and t.current_lat) else settings.DEFAULT_TOURIST_GPS["lat"]
+            default_t_lon = t.current_lon if (t and t.current_lon) else settings.DEFAULT_TOURIST_GPS["lon"]
+
+            target_lat = (inc.target_lat or inc.lkp_lat) if inc else (uav_sim.target_lat or default_t_lat)
+            target_lon = (inc.target_lon or inc.lkp_lon) if inc else (uav_sim.target_lon or default_t_lon)
 
             if inc:
                 inc.status = "RESCUE_EN_ROUTE"
@@ -759,80 +782,81 @@ class IncidentManager:
         self.demo_task = asyncio.create_task(self._execute_demo_routine())
 
     async def _execute_demo_routine(self):
-        """Executes the full automated 10-step rescue scenario with realistic timing"""
+        """Executes the full automated 10-step rescue scenario at exact 5.5-second intervals (55.0s total)"""
         try:
-            # Step 1: Normal Tourist
+            # Phase 1 (0.0s - 5.5s): STEP 1/10: TOURIST NOMINAL // GAIT TELEMETRY STREAMING
             self.reset_system()
             self.demo_step = 1
-            self.demo_status_text = "STEP 1/10: TOURIST NORMAL // GAIT TELEMETRY STREAMING"
+            self.demo_status_text = "STEP 1/10: TOURIST NOMINAL // GAIT TELEMETRY STREAMING"
             sensor_sim.set_mode("NORMAL_WALK")
             lora_sim.set_channel("CELLULAR_4G")
             now_time = datetime.datetime.now().strftime("%H:%M:%S")
             self.add_timeline_log(None, "NORMAL_STATE", f"{now_time} — Baseline telemetry streaming // Normal gait", "All 4 tourist beacons reporting nominal GPS & biometric streams.", "MOBILE_AI")
-            await asyncio.sleep(3.5)
+            await asyncio.sleep(5.5)
 
-            # Step 2: Abnormal Movement / Fall Detected
+            # Phase 2 (5.5s - 11.0s): STEP 2/10: IMPACT DETECTED // 3.8g KINEMATIC SPIKE
             self.demo_step = 2
-            self.demo_status_text = "STEP 2/10: SUDDEN IMPACT (3.8G) DETECTED // EVALUATING"
+            self.demo_status_text = "STEP 2/10: IMPACT DETECTED // 3.8g KINEMATIC SPIKE"
             sensor_sim.set_mode("FALLING")
-            await asyncio.sleep(2.5)
+            now_time = datetime.datetime.now().strftime("%H:%M:%S")
+            self.add_timeline_log(None, "IMPACT_DETECTED", f"{now_time} — Impact detected (3.8g)", "IMU sensor registered abnormal impact spike on UGID GX-8921-ALPHA.", "MOBILE_AI")
+            await asyncio.sleep(5.5)
 
-            # Step 3: Inactivity Confirmed & Threat Level Escalation
+            # Phase 3 (11.0s - 16.5s): STEP 3/10: IMMOBILITY TRIGGERED // THREAT CRITICAL
             self.demo_step = 3
-            self.demo_status_text = "STEP 3/10: SUSTAINED IMMOBILITY CONFIRMED // AUTO-EMERGENCY TRIGGERED"
+            self.demo_status_text = "STEP 3/10: IMMOBILITY TRIGGERED // THREAT CRITICAL"
             sensor_sim.set_mode("IMMOBILE")
-            await asyncio.sleep(2.5)
+            now_time = datetime.datetime.now().strftime("%H:%M:%S")
+            self.add_timeline_log(None, "IMMOBILE_TRIGGER", f"{now_time} — Sustained immobility confirmed", "Zero kinematic motion sustained for 15s. Threat elevated to CRITICAL.", "MOBILE_AI")
+            await asyncio.sleep(5.5)
 
-            # Step 4: UGID Verification & LoRa Fallback
+            # Phase 4 (16.5s - 22.0s): STEP 4/10: LKP ENCRYPTED & LOCKED // RADAR BOUNDS ACTIVE
             self.demo_step = 4
-            self.demo_status_text = "STEP 4/10: UGID VERIFIED // CELLULAR LOSS -> LORA MESH SWITCH"
+            self.demo_status_text = "STEP 4/10: LKP ENCRYPTED & LOCKED // RADAR BOUNDS ACTIVE"
             lora_sim.set_channel("LORA_MESH")
             inc = self.trigger_emergency(self.current_tourist_ugid, "FALL_DETECTED", "Automated AI Fall & Immobility Trigger")
-            await asyncio.sleep(3.0)
+            await asyncio.sleep(5.5)
 
-            # Step 5: Tactical Hub Triage & Nearest UAV Selection
+            # Phase 5 (22.0s - 27.5s): STEP 5/10: OASIS CAP v1.2 MULTI-AGENCY DISPATCH
             self.demo_step = 5
-            self.demo_status_text = "STEP 5/10: TACTICAL HUB TRIAGE // UAV-ALPHA SCRAMBLED"
-            self.dispatch_uav(inc.id)
-            await asyncio.sleep(3.0)
+            self.demo_status_text = "STEP 5/10: OASIS CAP v1.2 MULTI-AGENCY DISPATCH"
+            now_time = datetime.datetime.now().strftime("%H:%M:%S")
+            self.add_timeline_log(inc.id, "CAP_ALERT", f"{now_time} — OASIS CAP v1.2 Dispatched", "Encrypted multi-agency payload sent to Police, Mercy Hospital, and SAR Outpost.", "TACTICAL_HUB")
+            await asyncio.sleep(5.5)
 
-            # Step 6: UAV En Route to LKP
+            # Phase 6 (27.5s - 33.0s): STEP 6/10: UAV AIRBORNE // TRANSIT TO LKP
             self.demo_step = 6
-            self.demo_status_text = "STEP 6/10: UAV-ALPHA EN ROUTE TO LKP (24 M/S, 45M AGL)"
-            while uav_sim.status == "EN_ROUTE_LKP":
-                await asyncio.sleep(0.5)
+            self.demo_status_text = "STEP 6/10: UAV AIRBORNE // TRANSIT TO LKP"
+            self.dispatch_uav(inc.id)
+            await asyncio.sleep(5.5)
 
-            # Step 7: Systematic Search Pattern & FLIR Thermal Scan
+            # Phase 7 (33.0s - 38.5s): STEP 7/10: ISRID SECTOR SCANNING // EXPANDING SQUARE
             self.demo_step = 7
-            self.demo_status_text = "STEP 7/10: EXPANDING SEARCH PATTERN // FLIR THERMAL SCAN ACTIVE"
+            self.demo_status_text = "STEP 7/10: ISRID SECTOR SCANNING // EXPANDING SQUARE"
+            self.start_uav_search()
             now_time = datetime.datetime.now().strftime("%H:%M:%S")
-            self.add_timeline_log(inc.id, "LKP_REACHED", f"{now_time} — LKP reached", f"UAV arrived at {inc.lkp_lat:.5f}, {inc.lkp_lon:.5f}. Sector search initiated.", "UAV_OPS")
-            self.add_timeline_log(inc.id, "SEARCH_START", f"{now_time} — Search initiated", "Expanding square pattern active. FLIR Ironbow sensor streaming at 30 FPS.", "UAV_OPS")
-            
-            while uav_sim.status == "SEARCHING":
-                await asyncio.sleep(0.5)
+            self.add_timeline_log(inc.id, "SEARCH_START", f"{now_time} — ISRID sector search engaged", "Expanding square search pattern active at 45m AGL with Ironbow FLIR feed.", "UAV_OPS")
+            await asyncio.sleep(5.5)
 
-            # Step 8: Victim AI Target Acquisition & Target Lock
+            # Phase 8 (38.5s - 44.0s): STEP 8/10: FLIR THERMAL LOCK // VICTIM ACQUIRED (36.8°C)
             self.demo_step = 8
-            self.demo_status_text = "STEP 8/10: THERMAL CANDIDATE DETECTED // VICTIM LOCATED (36.8°C)"
-            now_time = datetime.datetime.now().strftime("%H:%M:%S")
-            self.add_timeline_log(inc.id, "THERMAL_CANDIDATE", f"{now_time} — Thermal candidate detected", "Thermal heat anomaly matches human signature (36.8°C).", "UAV_OPS")
-            await asyncio.sleep(2.5)
+            self.demo_status_text = "STEP 8/10: FLIR THERMAL LOCK // VICTIM ACQUIRED (36.8°C)"
+            self.trigger_thermal_scan()
+            await asyncio.sleep(5.5)
 
-            # Step 9: Ground Rescue Team Dispatch & Mobile Notification
+            # Phase 9 (44.0s - 49.5s): STEP 9/10: GROUND UNIT ECHO-4 INTERCEPT // ON-SCENE
             self.demo_step = 9
-            self.demo_status_text = "STEP 9/10: GROUND RESCUE ECHO-4 DISPATCHED // MOBILE UPDATED"
+            self.demo_status_text = "STEP 9/10: GROUND UNIT ECHO-4 INTERCEPT // ON-SCENE"
             self.dispatch_ground_rescue(inc.id)
-            while rescue_sim.status == "DISPATCHED":
-                await asyncio.sleep(0.5)
+            await asyncio.sleep(5.5)
 
-            # Brief pause on scene for medical triage
-            await asyncio.sleep(2.5)
-
-            # Step 10: Rescue Completed & Incident Resolved
+            # Phase 10 (49.5s - 55.0s): STEP 10/10: RESCUE COMPLETE // SHA-256 MERKLE SEALED
             self.demo_step = 10
-            self.demo_status_text = "STEP 10/10: VICTIM SECURED // INCIDENT RESOLVED // DEMO COMPLETE"
+            self.demo_status_text = "STEP 10/10: RESCUE COMPLETE // SHA-256 MERKLE SEALED"
             self.resolve_incident(inc.id)
+            now_time = datetime.datetime.now().strftime("%H:%M:%S")
+            self.add_timeline_log(inc.id, "MERKLE_SEAL", f"{now_time} — Rescue complete & Merkle sealed", "Forensic SHA-256 blockchain ledger sealed. All assets in nominal stand-down.", "COMMAND")
+            await asyncio.sleep(5.5)
 
         except asyncio.CancelledError:
             print("[Demo Routine] Cancelled by user/reset.")

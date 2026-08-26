@@ -1,6 +1,7 @@
 import React from 'react';
 import { useSystem } from '../../context/SystemContext';
 import { Printer, ShieldCheck, FileText, X, Check, Lock, MapPin, Activity, Radio, Award } from 'lucide-react';
+import exportPdfDossier from '../../utils/exportPdfDossier';
 
 export default function ForensicDossierModal({ isOpen, onClose }) {
   const { 
@@ -17,7 +18,16 @@ export default function ForensicDossierModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   const handlePrint = () => {
-    window.print();
+    exportPdfDossier({
+      active_incident,
+      tourist,
+      uav,
+      rescue_team,
+      departmental_dispatches,
+      forensic_ledger,
+      forensic_audit,
+      recent_events
+    });
   };
 
   const incidentNum = active_incident?.incident_number || 'INC-20260825-118';
@@ -106,7 +116,7 @@ export default function ForensicDossierModal({ isOpen, onClose }) {
             3. GEOGRAPHIC LKP &amp; AUTONOMOUS FLIR THERMAL LOCK
           </div>
           <div className="grid grid-cols-2 gap-2 text-[11px] bg-slate-50 p-2.5 rounded border">
-            <div><strong>Last Known Position (LKP):</strong> {active_incident?.lkp_lat?.toFixed(5) || '37.74200'}°N, {Math.abs(active_incident?.lkp_lon || 119.59750).toFixed(5)}°W</div>
+            <div><strong>Last Known Position (LKP):</strong> {Math.abs(active_incident?.lkp_lat || 11.39950).toFixed(5)}°{(active_incident?.lkp_lat || 11.3995) >= 0 ? 'N' : 'S'}, {Math.abs(active_incident?.lkp_lon || 78.16140).toFixed(5)}°{(active_incident?.lkp_lon || 78.1614) >= 0 ? 'E' : 'W'}</div>
             <div><strong>Altitude:</strong> 1,240.0m ASL (Sector Alpha Core)</div>
             <div><strong>Assigned UAV Unit:</strong> {uav?.callsign || 'UAV-ALPHA // PHOENIX-1'}</div>
             <div><strong>FLIR Body Heat Detection:</strong> <span className="font-bold text-emerald-700">36.8°C (97.6% CONFIDENCE)</span></div>

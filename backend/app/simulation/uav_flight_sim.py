@@ -9,9 +9,9 @@ class UAVFlightSimulator:
         self.model = "Tactical Hexacopter SAR (FLIR Boson 640)"
         self.status = "STANDBY" # STANDBY, TAKEOFF, EN_ROUTE_LKP, SEARCHING, TARGET_LOCKED, HOVER_BEACON, RETURNING, LANDED
         
-        # Base Hangar Coordinates
-        self.base_lat = settings.UAV_HANGAR_GPS["lat"]
-        self.base_lon = settings.UAV_HANGAR_GPS["lon"]
+        # Base Hangar Coordinates (Pad 01)
+        self.base_lat = round(settings.BASE_LAT, 6)
+        self.base_lon = round(settings.BASE_LON, 6)
         self.lat = self.base_lat
         self.lon = self.base_lon
         
@@ -71,7 +71,10 @@ class UAVFlightSimulator:
         return R * c
 
     def _calculate_bearing(self, lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-        """Calculates true geographic bearing from point 1 to point 2 via spherical trigonometry"""
+        """
+        Calculates true geographic forward azimuth/bearing angle using:
+        atan2(sin(Δlng)*cos(lat2), cos(lat1)*sin(lat2) - sin(lat1)*cos(lat2)*cos(Δlng))
+        """
         phi1 = math.radians(lat1)
         phi2 = math.radians(lat2)
         delta_lambda = math.radians(lon2 - lon1)
@@ -111,7 +114,7 @@ class UAVFlightSimulator:
         return waypoints
 
     def dispatch_to_lkp(self, lkp_lat: float, lkp_lon: float):
-        """Commands UAV to take off and transit to Last Known Position (LKP) with safe coordinate validation"""
+        """Commands UAV to take off from local Base Pad 01 and transit to Last Known Position (LKP)"""
         # Validate coordinates to prevent NaN / Undefined
         if lkp_lat is None or math.isnan(float(lkp_lat)) or float(lkp_lat) == 0.0:
             lkp_lat = settings.DEFAULT_TOURIST_GPS["lat"]
@@ -121,15 +124,11 @@ class UAVFlightSimulator:
         target_lat = float(lkp_lat)
         target_lon = float(lkp_lon)
 
-        # Check distance from current drone base to target victim
-        curr_dist = self._haversine_distance(self.lat, self.lon, target_lat, target_lon)
-        
-        # If current position is in a different region/continent (> 1500m), relocalize Drone Base Pad 01 to the victim's sector (~250m offset)
-        if curr_dist > 1500.0 or self.status == "STANDBY":
-            self.base_lat = round(target_lat + 0.0018, 6)
-            self.base_lon = round(target_lon + 0.0022, 6)
-            self.lat = self.base_lat
-            self.lon = self.base_lon
+        # Initialize Base Pad 01 at realistic local sector offset (+0.0035N, +0.0025E ~ 475m)
+        self.base_lat = round(target_lat + 0.0035, 6)
+        self.base_lon = round(target_lon + 0.0025, 6)
+        self.lat = self.base_lat
+        self.lon = self.base_lon
 
         self.status = "EN_ROUTE_LKP"
         self.target_lkp_lat = target_lat
@@ -139,9 +138,12 @@ class UAVFlightSimulator:
         self.target_confidence = 0.0
         self.search_waypoint_idx = 0
         self.search_waypoints = self._generate_expanding_square_waypoints(self.target_lkp_lat, self.target_lkp_lon)
-        self.flight_trail = [[round(self.lat, 6), round(self.lon, 6)]]
+        self.flight_trail = [[self.lat, self.lon]]
         self.mission_seq = 1
+        
+        # Calculate true forward bearing from Base Pad 01 to victim LKP
         self.target_heading_deg = self._calculate_bearing(self.lat, self.lon, self.target_lkp_lat, self.target_lkp_lon)
+        self.heading_deg = self.target_heading_deg
 
     def start_expanding_square_search(self):
         """Initiates autonomous expanding square search grid around LKP"""
@@ -192,7 +194,7 @@ class UAVFlightSimulator:
         self.target_lat = None
         self.target_lon = None
         self.target_thermal_temp = 0.0
-        self.flight_trail = []
+        self.flight_trail = [[self.lat, self.lon]]
         self.mission_seq = 0
 
     def reset_uav(self):
@@ -305,7 +307,7 @@ class UAVFlightSimulator:
             t = now * 0.6
             orbit_rad = 15.0 / 111111.0
             self.lat = (self.target_lat or self.lat) + orbit_rad * math.sin(t)
-            self.lon = (self.target_lon or self.lon) + (orbit_rad / math.cos(math.radians(self.lat))) * math.cos(t)
+            self.lon = (self.target_lon or self.lon) + (orbit_rad / max(0.1, math.cos(math.radians(self.lat)))) * math.cos(t)
             self.heading_deg = (math.degrees(t) + 90.0) % 360.0
             self.roll_deg = -15.0 # Inward surveillance bank
 
@@ -330,12 +332,17 @@ class UAVFlightSimulator:
 
     def get_state(self) -> Dict[str, Any]:
         """Returns comprehensive UAV avionics, search progress, breadcrumbs, and MAVLink packets"""
+        dist_to_target = self._haversine_distance(
+            self.lat, self.lon, self.target_lkp_lat or self.lat, self.target_lkp_lon or self.lon
+        )
         return {
             "callsign": self.callsign,
             "model": self.model,
             "status": self.status,
             "current_lat": round(self.lat, 6),
             "current_lon": round(self.lon, 6),
+            "base_lat": round(self.base_lat, 6),
+            "base_lon": round(self.base_lon, 6),
             "altitude_agl": round(self.altitude_agl, 1),
             "battery_pct": round(self.battery_pct, 1),
             "airspeed_mps": round(self.airspeed_mps, 1),
@@ -347,9 +354,7 @@ class UAVFlightSimulator:
             "energy_consumption_wh_per_km": round(
                 ((21.6 + (self.battery_pct / 100.0) * 3.6) * (12.4 + (self.throttle_pct / 100.0) * 28.0)) / max(1.0, self.airspeed_mps * 3.6), 1
             ) if self.airspeed_mps > 1.0 else 0.0,
-            "haversine_distance_to_target_m": round(
-                self._haversine_distance(self.lat, self.lon, self.target_lkp_lat or self.lat, self.target_lkp_lon or self.lon), 1
-            ),
+            "haversine_distance_to_target_m": round(dist_to_target, 1),
             "isrid_model": {
                 "victim_category": "HIKER_TREKKER",
                 "p25_radius_m": 400,
@@ -367,6 +372,17 @@ class UAVFlightSimulator:
             "target_thermal_temp": self.target_thermal_temp,
             "flight_trail": self.flight_trail,
             "search_waypoints": self.search_waypoints,
+            "telemetry": {
+                "current_lat": round(self.lat, 6),
+                "current_lng": round(self.lon, 6),
+                "current_lon": round(self.lon, 6),
+                "base_lat": round(self.base_lat, 6),
+                "base_lng": round(self.base_lon, 6),
+                "base_lon": round(self.base_lon, 6),
+                "altitude_agl": round(self.altitude_agl, 1),
+                "airspeed_mps": round(self.airspeed_mps, 1),
+                "heading_deg": round(self.heading_deg, 1)
+            },
             "mavlink": {
                 "SYS_STATUS": {
                     "voltage_battery": round(21.6 + (self.battery_pct / 100.0) * 3.6, 2),

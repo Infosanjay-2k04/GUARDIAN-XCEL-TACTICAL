@@ -17,12 +17,17 @@ export default function MissionControlPanel() {
     resetUav 
   } = useSystem();
 
-  // Compute live Euclidean distance to LKP (m)
-  const lkpLat = active_incident?.target_lat || active_incident?.lkp_lat || tourist?.current_lat || 37.7420;
-  const lkpLon = active_incident?.target_lon || active_incident?.lkp_lon || tourist?.current_lon || -119.5975;
-  const dLat = (lkpLat - (uav.current_lat || 37.7490)) * 111111.0;
-  const dLon = (lkpLon - (uav.current_lon || -119.5860)) * 111111.0 * Math.cos(lkpLat * Math.PI / 180.0);
-  const distMeters = Math.round(Math.sqrt(dLat * dLat + dLon * dLon));
+  // Compute live Euclidean / Haversine distance to LKP (m)
+  const lkpLat = active_incident?.target_lat || active_incident?.lkp_lat || tourist?.current_lat || 11.3995;
+  const lkpLon = active_incident?.target_lon || active_incident?.lkp_lon || tourist?.current_lon || 78.1614;
+  const uavLat = uav.telemetry?.current_lat || uav.current_lat || (lkpLat + 0.0035);
+  const uavLon = uav.telemetry?.current_lng || uav.telemetry?.current_lon || uav.current_lon || (lkpLon + 0.0025);
+  
+  const dLat = (lkpLat - uavLat) * 111111.0;
+  const dLon = (lkpLon - uavLon) * 111111.0 * Math.cos(lkpLat * Math.PI / 180.0);
+  const distMeters = uav.haversine_distance_to_target_m !== undefined 
+    ? Math.round(uav.haversine_distance_to_target_m)
+    : Math.round(Math.sqrt(dLat * dLat + dLon * dLon));
 
   const isFlying = uav.status !== 'STANDBY';
   const isSearching = uav.status === 'SEARCHING';

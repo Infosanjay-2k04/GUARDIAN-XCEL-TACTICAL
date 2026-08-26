@@ -11,6 +11,7 @@ from app.api.routes_incidents import router as incidents_router
 from app.api.routes_uav import router as uav_router
 from app.api.routes_demo import router as demo_router
 from app.simulation.uav_flight_sim import uav_sim
+from app.simulation.ground_team_sim import rescue_sim
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -137,12 +138,15 @@ async def websocket_endpoint(websocket: WebSocket):
                     incident_manager.reset_uav()
                     print(f"[UAV EXECUTION] RESET_UAV executed. Status: {uav_sim.status}")
 
-                elif action == "DISPATCH_RESCUE":
+                elif action in ["DISPATCH_RESCUE", "DISPATCH_GROUND_RESCUE", "FORCE_GROUND_DISPATCH"]:
                     inc_id = msg.get("incident_id")
                     if inc_id:
                         incident_manager.dispatch_ground_rescue(int(inc_id))
+                    elif incident_manager.active_incident_id:
+                        incident_manager.dispatch_ground_rescue(incident_manager.active_incident_id)
                     else:
                         incident_manager.dispatch_ground_rescue(1)
+                    print(f"[RESCUE EXECUTION] Ground SAR Dispatch Triggered. Status: {rescue_sim.status}")
 
                 elif action == "RESOLVE_INCIDENT":
                     inc_id = msg.get("incident_id")

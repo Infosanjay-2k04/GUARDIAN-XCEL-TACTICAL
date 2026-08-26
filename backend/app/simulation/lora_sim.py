@@ -85,7 +85,7 @@ class LoRaSimulator:
             self.cellular_rssi_dbm = random.randint(-82, -74)
             self.hop_count = 1
 
-    def tick(self, lat: float = 37.7420, lon: float = -119.5975, threat_level: str = "NORMAL", battery_pct: int = 94, heart_rate: int = 76) -> dict:
+    def tick(self, lat: float = 11.3995, lon: float = 78.1614, threat_level: str = "NORMAL", battery_pct: int = 94, heart_rate: int = 76) -> dict:
         now = time.time()
         self.packet_counter += 1
         timestamp_sec = int(now)

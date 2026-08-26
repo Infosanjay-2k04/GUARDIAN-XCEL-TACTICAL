@@ -4,18 +4,18 @@ import { MapContainer, TileLayer, Marker, Polygon, Circle, Popup } from 'react-l
 import L from 'leaflet';
 import { MapPin, ShieldAlert, AlertTriangle, CheckCircle2 } from 'lucide-react';
 
-// Safe zone and hazard polygon coords (same as TacticalMap)
+// Safe zone and hazard polygon coords
 const SAFE_COORDS = [
-  [37.7520, -119.6050],
-  [37.7540, -119.5800],
-  [37.7380, -119.5780],
-  [37.7350, -119.6030]
+  [11.4080, 78.1500],
+  [11.4095, 78.1700],
+  [11.3920, 78.1710],
+  [11.3900, 78.1510]
 ];
 const HAZARD_COORDS = [
-  [37.7410, -119.6010],
-  [37.7435, -119.5960],
-  [37.7390, -119.5950],
-  [37.7375, -119.5995]
+  [11.3985, 78.1580],
+  [11.4010, 78.1630],
+  [11.3965, 78.1640],
+  [11.3950, 78.1595]
 ];
 
 function createSelfIcon(threatLevel) {

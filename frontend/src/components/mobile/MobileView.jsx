@@ -42,8 +42,8 @@ export default function MobileView({ embedded = false }) {
   const [isCharging, setIsCharging] = useState(false);
   const [gpsError, setGpsError] = useState(null);
   const [showGpsOverride, setShowGpsOverride] = useState(false);
-  const [manualLat, setManualLat] = useState(tourist.current_lat || 37.7420);
-  const [manualLon, setManualLon] = useState(tourist.current_lon || -119.5975);
+  const [manualLat, setManualLat] = useState(tourist.current_lat || 11.3995);
+  const [manualLon, setManualLon] = useState(tourist.current_lon || 78.1614);
   const [needsMotionPermission, setNeedsMotionPermission] = useState(false);
 
   // Acoustic Beacon & Blackbox States
@@ -267,19 +267,7 @@ export default function MobileView({ embedded = false }) {
       const magnitude = Math.sqrt(ax * ax + ay * ay + az * az);
       const gForce = magnitude / 9.80665;
 
-      const now = Date.now();
-
-      // Real Fall / Impact Spike Trigger Detection
-      if (gForce > 3.4) {
-        highGSpikeCountRef.current += 1;
-        triggerAudioBlackbox(); // Trigger 4s audio blackbox recording
-        if (highGSpikeCountRef.current >= 2 && !active_incident) {
-          triggerSim('FALL');
-          highGSpikeCountRef.current = 0;
-        }
-      }
-
-      // Throttle live stream updates to 5Hz (200ms)
+      // Throttle live stream updates to 5Hz (200ms) without auto-triggering emergency
       if (now - lastMotionSendRef.current >= 200) {
         lastMotionSendRef.current = now;
         setRealMotionActive(true);

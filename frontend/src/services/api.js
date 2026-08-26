@@ -86,3 +86,7 @@ export async function syncOfflineTelemetry(queue) {
   });
   return res.json();
 }
+
+export const triggerSOS = triggerManualEmergency;
+export const dispatchGroundRescue = dispatchRescueTeam;
+

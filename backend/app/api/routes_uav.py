@@ -43,5 +43,8 @@ def dispatch_active_uav():
         return {"status": "ok", "dispatched_to_incident": incident_manager.active_incident_id}
     else:
         # Standalone launch to default demo tourist coords
-        uav_sim.dispatch_to_lkp(37.7420, -119.5975)
-        return {"status": "ok", "dispatched_to_coords": [37.7420, -119.5975]}
+        from app.config import settings
+        target_lat = settings.DEFAULT_TOURIST_GPS["lat"]
+        target_lon = settings.DEFAULT_TOURIST_GPS["lon"]
+        uav_sim.dispatch_to_lkp(target_lat, target_lon)
+        return {"status": "ok", "dispatched_to_coords": [target_lat, target_lon]}

@@ -15,8 +15,8 @@ class Tourist(Base):
     medical_notes = Column(Text, default="Penicillin Allergy / No Chronic Conditions")
     
     # Live Geolocation
-    current_lat = Column(Float, default=37.7420)
-    current_lon = Column(Float, default=-119.5975)
+    current_lat = Column(Float, default=11.3995)
+    current_lon = Column(Float, default=78.1614)
     altitude = Column(Float, default=1240.0) # meters
     
     # Telemetry
@@ -45,8 +45,8 @@ class UAV(Base):
     status = Column(String(32), default="STANDBY") # STANDBY, EN_ROUTE_LKP, SEARCHING, TARGET_LOCKED, HOVER_BEACON, RETURNING
     
     # Geolocation & Kinematics
-    current_lat = Column(Float, default=37.7490)
-    current_lon = Column(Float, default=-119.5860)
+    current_lat = Column(Float, default=11.4020)
+    current_lon = Column(Float, default=78.1639)
     altitude_agl = Column(Float, default=0.0) # Altitude Above Ground Level in meters
     battery_pct = Column(Float, default=98.5)
     airspeed_mps = Column(Float, default=0.0)
@@ -72,8 +72,8 @@ class RescueTeam(Base):
     unit_type = Column(String(64), default="Tactical All-Terrain Rapid Response")
     status = Column(String(32), default="STANDBY") # STANDBY, DISPATCHED, ON_SCENE, RETURNING
     
-    current_lat = Column(Float, default=37.7478)
-    current_lon = Column(Float, default=-119.5880)
+    current_lat = Column(Float, default=11.4023)
+    current_lon = Column(Float, default=78.1646)
     speed_mps = Column(Float, default=0.0)
     eta_seconds = Column(Integer, default=0)
 

@@ -41,7 +41,7 @@ export default function CapAlertModal({ isOpen, onClose }) {
     </parameter>
     <area>
       <areaDesc>Sector Alpha Core Hazard Zone</areaDesc>
-      <circle>${tourist?.current_lat?.toFixed(5) || '37.74200'},${tourist?.current_lon?.toFixed(5) || '-119.59750'},400.0</circle>
+      <circle>${tourist?.current_lat?.toFixed(5) || '11.39950'},${tourist?.current_lon?.toFixed(5) || '78.16140'},400.0</circle>
     </area>
   </info>
 </alert>`;

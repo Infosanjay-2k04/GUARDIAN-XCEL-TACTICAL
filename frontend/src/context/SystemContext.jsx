@@ -11,8 +11,8 @@ export function SystemProvider({ children }) {
       emergency_contact: '+1 (555) 019-2834',
       blood_type: 'O-POS',
       medical_notes: 'Penicillin Allergy / No Chronic Conditions',
-      current_lat: 37.7420,
-      current_lon: -119.5975,
+      current_lat: 11.3831,
+      current_lon: 78.1626,
       altitude: 1240.0,
       battery_pct: 94,
       heart_rate: 76,
@@ -33,8 +33,8 @@ export function SystemProvider({ children }) {
         emergency_contact: '+1 (555) 019-2834',
         blood_type: 'O-POS',
         medical_notes: 'Penicillin Allergy / No Chronic Conditions',
-        current_lat: 37.7420,
-        current_lon: -119.5975,
+        current_lat: 11.3831,
+        current_lon: 78.1626,
         altitude: 1240.0,
         battery_pct: 94,
         heart_rate: 76,
@@ -49,9 +49,9 @@ export function SystemProvider({ children }) {
         emergency_contact: '+1 (555) 304-9821',
         blood_type: 'A-POS',
         medical_notes: 'Asthma (Inhaler equipped)',
-        current_lat: 37.7510,
-        current_lon: -119.5890,
-        altitude: 1410.0,
+        current_lat: 11.3845,
+        current_lon: 78.1640,
+        altitude: 1260.0,
         battery_pct: 88,
         heart_rate: 72,
         g_force: 1.0,
@@ -65,9 +65,9 @@ export function SystemProvider({ children }) {
         emergency_contact: '+1 (555) 672-1140',
         blood_type: 'B-POS',
         medical_notes: 'Nil Notable / Experienced Hiker',
-        current_lat: 37.7465,
-        current_lon: -119.6015,
-        altitude: 1180.0,
+        current_lat: 11.3820,
+        current_lon: 78.1610,
+        altitude: 1210.0,
         battery_pct: 91,
         heart_rate: 74,
         g_force: 1.0,
@@ -81,9 +81,9 @@ export function SystemProvider({ children }) {
         emergency_contact: '+1 (555) 918-4422',
         blood_type: 'O-NEG',
         medical_notes: 'Type 1 Diabetes (Insulin Carrier)',
-        current_lat: 37.7395,
-        current_lon: -119.5840,
-        altitude: 1320.0,
+        current_lat: 11.3815,
+        current_lon: 78.1645,
+        altitude: 1225.0,
         battery_pct: 79,
         heart_rate: 80,
         g_force: 1.0,
@@ -101,8 +101,10 @@ export function SystemProvider({ children }) {
       callsign: 'UAV-ALPHA // PHOENIX-1',
       model: 'Guardian SkyScout V4 (FLIR + RTK)',
       status: 'STANDBY',
-      current_lat: 37.7490,
-      current_lon: -119.5860,
+      current_lat: 11.3866,
+      current_lon: 78.1651,
+      base_lat: 11.3866,
+      base_lon: 78.1651,
       altitude_agl: 0.0,
       battery_pct: 98.5,
       airspeed_mps: 0.0,
@@ -113,7 +115,16 @@ export function SystemProvider({ children }) {
       target_confidence: 0.0,
       target_lat: null,
       target_lon: null,
-      target_thermal_temp: 0.0
+      target_thermal_temp: 0.0,
+      telemetry: {
+        current_lat: 11.3866,
+        current_lng: 78.1651,
+        base_lat: 11.3866,
+        base_lng: 78.1651,
+        altitude_agl: 0.0,
+        airspeed_mps: 0.0,
+        heading_deg: 0.0
+      }
     },
     uav_fleet: [
       {
@@ -124,8 +135,8 @@ export function SystemProvider({ children }) {
         status: 'STANDBY',
         battery_pct: 98.5,
         voltage: 24.8,
-        current_lat: 37.7490,
-        current_lon: -119.5860,
+        current_lat: 11.3866,
+        current_lon: 78.1651,
         altitude_agl: 0.0,
         airspeed_mps: 0.0,
         heading_deg: 0.0,
@@ -143,8 +154,8 @@ export function SystemProvider({ children }) {
         status: 'STANDBY',
         battery_pct: 94.0,
         voltage: 24.1,
-        current_lat: 37.7492,
-        current_lon: -119.5855,
+        current_lat: 11.3865,
+        current_lon: 78.1660,
         altitude_agl: 0.0,
         airspeed_mps: 0.0,
         heading_deg: 0.0,
@@ -162,8 +173,8 @@ export function SystemProvider({ children }) {
         status: 'STANDBY',
         battery_pct: 100.0,
         voltage: 25.2,
-        current_lat: 37.7488,
-        current_lon: -119.5865,
+        current_lat: 11.3858,
+        current_lon: 78.1665,
         altitude_agl: 0.0,
         airspeed_mps: 0.0,
         heading_deg: 0.0,
@@ -175,13 +186,34 @@ export function SystemProvider({ children }) {
       }
     ],
     rescue_team: {
-      team_callsign: 'GROUND ECHO-4',
-      unit_type: 'Tactical All-Terrain Rapid Response',
+      team_callsign: 'TACTICAL SAR // ECHO-4',
+      callsign: 'GROUND ECHO-4',
+      unit_type: '4x4 ALL-TERRAIN RAPID RESPONSE',
+      vehicle_model: 'Polaris Ranger Crew XP 1000 Tactical',
+      personnel_count: 4,
       status: 'STANDBY',
-      current_lat: 37.7478,
-      current_lon: -119.5880,
+      current_lat: 11.3785,
+      current_lon: 78.1595,
+      base_lat: 11.3785,
+      base_lon: 78.1595,
       speed_mps: 0.0,
-      eta_seconds: 0
+      speed_kmh: 0.0,
+      distance_to_target_m: 650.0,
+      eta_seconds: 0,
+      eta_minutes: 0.0,
+      eta_formatted: '00:00',
+      tobler_kinematics: {
+        slope_gradient: 0.042,
+        slope_deg: 18.4,
+        speed_kmh: 28.5,
+        formula: 'W = 6 * exp(-3.5 * |slope + 0.05|) [km/h]'
+      },
+      golden_hour: {
+        remaining_seconds: 3520,
+        formatted: '58:40',
+        progress_pct: 97.8,
+        urgency: 'NORMAL'
+      }
     },
     thermal_vision: {
       ambient_temp_c: 14.5,
@@ -222,7 +254,7 @@ export function SystemProvider({ children }) {
         status: 'STANDBY_MONITORING',
         status_label: 'PATROL STANDBY',
         target_ugid: 'GX-8921-ALPHA',
-        target_coordinates: '37.74200°N, 119.59750°W',
+        target_coordinates: '11.3995°N, 78.1614°E',
         velocity_vector: 'G-Force: 1.0g | Heading: 214° SW',
         emergency_contact: '+1 (555) 019-2834',
         dispatch_priority: 'ROUTINE',
@@ -254,8 +286,8 @@ export function SystemProvider({ children }) {
         status: 'OUTPOST_STANDBY',
         status_label: 'OUTPOST STANDBY',
         target_ugid: 'GX-8921-ALPHA',
-        terrain_entry_point: 'TRAILHEAD ACCESS GATE BRAVO (GRID 37-119)',
-        lkp_coordinates: '37.74200°N, 119.59750°W',
+        terrain_entry_point: 'TRAILHEAD ACCESS GATE BRAVO',
+        lkp_coordinates: '11.3995°N, 78.1614°E',
         altitude_asl: '1240.0m ASL',
         assigned_vehicle: 'Echo-4 Polaris Ranger High-Clearance ATV',
         rescue_team_eta: '--',
@@ -270,9 +302,9 @@ export function SystemProvider({ children }) {
     demo_step: 0,
     demo_status_text: 'SYSTEM READY // NORMAL MONITORING',
     landmarks: {
-      ranger_hq: { lat: 37.7485, lon: -119.5870, name: 'Tactical Alpha Hub (Ranger HQ)' },
-      uav_hangar: { lat: 37.7490, lon: -119.5860, name: 'UAV Drone Base (Pad 01)' },
-      rescue_station: { lat: 37.7478, lon: -119.5880, name: 'Ground Rescue Outpost (Unit Echo-4)' }
+      ranger_hq: { lat: 11.4010, lon: 78.1620, name: 'Tactical Alpha Hub (Ranger HQ)' },
+      uav_hangar: { lat: 11.4020, lon: 78.1630, name: 'UAV Drone Base (Pad 01)' },
+      rescue_station: { lat: 11.3920, lon: 78.1600, name: 'Ground Rescue Outpost (Unit Echo-4)' }
     }
   });
 
@@ -364,8 +396,8 @@ export function SystemProvider({ children }) {
               forensic_audit: data.forensic_audit || prev.forensic_audit,
               terrain_profile: data.terrain_profile || prev.terrain_profile,
               recent_events: data.recent_events || prev.recent_events,
-              demo_step: data.demo_step,
-              demo_status_text: data.demo_status_text,
+              demo_step: isDemoRunningRef.current ? prev.demo_step : data.demo_step,
+              demo_status_text: isDemoRunningRef.current ? prev.demo_status_text : data.demo_status_text,
               geofence_safe: data.geofence_safe || prev.geofence_safe,
               geofence_hazard: data.geofence_hazard || prev.geofence_hazard,
               landmarks: data.landmarks || prev.landmarks
@@ -426,36 +458,656 @@ export function SystemProvider({ children }) {
     }
   };
 
-  const startDemo = async () => {
-    sendWebSocketMessage({ action: 'START_DEMO' });
-    try {
-      await api.startFullDemo();
-    } catch (e) {
-      console.error(e);
+  const demoIntervalRef = useRef(null);
+  const isDemoRunningRef = useRef(false);
+  const demoStartTimeRef = useRef(0);
+  const demoElapsedOffsetRef = useRef(0);
+  const [isDemoRunning, setIsDemoRunning] = useState(false);
+  const [isDemoPaused, setIsDemoPaused] = useState(false);
+
+  const VICTIM_LAT = 11.3831;
+  const VICTIM_LON = 78.1626;
+  const PAD_LAT = 11.3866;
+  const PAD_LON = 78.1651;
+  const OUTPOST_LAT = 11.3785;
+  const OUTPOST_LON = 78.1595;
+
+  const clearDemoRunner = () => {
+    if (demoIntervalRef.current) {
+      clearInterval(demoIntervalRef.current);
+      demoIntervalRef.current = null;
+    }
+    isDemoRunningRef.current = false;
+    demoElapsedOffsetRef.current = 0;
+    setIsDemoRunning(false);
+    setIsDemoPaused(false);
+  };
+
+  // -------------------------------------------------------------
+  // Manual Jury Presentation Triggers (3-Step Fast Workflow)
+  // -------------------------------------------------------------
+  const triggerManualStep1_SOS = () => {
+    clearDemoRunner();
+    setState(prev => ({
+      ...prev,
+      demo_step: 1,
+      demo_status_text: 'STEP 1/3: IMPACT DETECTED (3.8g) // LKP LOCKED AT [11.3831°N, 78.1626°E] (CRITICAL)',
+      tourist: {
+        ...prev.tourist,
+        threat_level: 'CRITICAL',
+        g_force: 3.8,
+        heart_rate: 142,
+        current_lat: VICTIM_LAT,
+        current_lon: VICTIM_LON,
+        accel_x: 0.45,
+        accel_y: 2.1,
+        accel_z: 3.8
+      },
+      comms: {
+        ...prev.comms,
+        channel: 'LORA_MESH',
+        status_text: '868MHz LoRa TACTICAL MESH (FAILOVER ACTIVE)'
+      },
+      active_incident: {
+        id: 1,
+        incident_number: 'INC-20260826-001',
+        status: 'CONFIRMED',
+        severity: 'CRITICAL',
+        ugid: 'GX-8921-ALPHA',
+        trigger_type: 'FALL_DETECTED',
+        lkp_lat: VICTIM_LAT,
+        lkp_lon: VICTIM_LON,
+        target_lat: VICTIM_LAT,
+        target_lon: VICTIM_LON,
+        lkp_altitude: 1240.0,
+        created_at: new Date().toLocaleTimeString()
+      },
+      departmental_dispatches: {
+        ...prev.departmental_dispatches,
+        is_emergency_active: true,
+        police: {
+          ...prev.departmental_dispatches?.police,
+          status: 'DISPATCHED',
+          status_label: 'DISPATCHED // PURSUIT VECTOR ACTIVE'
+        },
+        medical: {
+          ...prev.departmental_dispatches?.medical,
+          status: 'ALERTED',
+          status_label: 'HOSPITAL ALERTED // BLOOD MATCHED'
+        },
+        sar: {
+          ...prev.departmental_dispatches?.sar,
+          status: 'STANDBY',
+          status_label: 'OUTPOST STANDBY'
+        }
+      }
+    }));
+
+    sendWebSocketMessage({ action: 'TRIGGER_SOS', ugid: 'GX-8921-ALPHA', trigger_type: 'FALL_DETECTED' });
+    api.triggerSOS('GX-8921-ALPHA', 'FALL_DETECTED').catch(() => {});
+  };
+
+  const triggerManualStep2_UAVSearch = () => {
+    clearDemoRunner();
+    setState(prev => ({
+      ...prev,
+      demo_step: 2,
+      demo_status_text: 'STEP 2/3: UAV AIRBORNE // FLIR THERMAL TARGET LOCK ACQUIRED (36.8°C)',
+      uav: {
+        ...prev.uav,
+        status: 'TARGET_LOCKED',
+        current_lat: VICTIM_LAT,
+        current_lon: VICTIM_LON,
+        altitude_agl: 45.0,
+        airspeed_mps: 0.0,
+        heading_deg: 214.0,
+        target_locked: true,
+        target_confidence: 98.2,
+        target_lat: VICTIM_LAT,
+        target_lon: VICTIM_LON,
+        target_thermal_temp: 36.8,
+        flight_trail: [[PAD_LAT, PAD_LON], [VICTIM_LAT, VICTIM_LON]]
+      },
+      thermal_vision: {
+        ...prev.thermal_vision,
+        bounding_box: {
+          visible: true,
+          x_pct: 50,
+          y_pct: 48,
+          width_pct: 35,
+          height_pct: 35,
+          label: 'TARGET_LOCKED // VICTIM IDENTIFIED',
+          confidence_pct: 98.2,
+          core_temp_c: 36.8,
+          status: 'LOCKED'
+        }
+      },
+      active_incident: prev.active_incident ? {
+        ...prev.active_incident,
+        status: 'TARGET_LOCKED',
+        target_lat: VICTIM_LAT,
+        target_lon: VICTIM_LON
+      } : {
+        id: 1,
+        incident_number: 'INC-20260826-001',
+        status: 'TARGET_LOCKED',
+        severity: 'CRITICAL',
+        ugid: 'GX-8921-ALPHA',
+        lkp_lat: VICTIM_LAT,
+        lkp_lon: VICTIM_LON,
+        target_lat: VICTIM_LAT,
+        target_lon: VICTIM_LON
+      }
+    }));
+
+    sendWebSocketMessage({ action: 'DISPATCH_UAV', incident_id: 1, target_lat: VICTIM_LAT, target_lng: VICTIM_LON });
+    api.dispatchUAV(1).catch(() => {});
+  };
+
+  const triggerManualStep3_GroundRescue = () => {
+    clearDemoRunner();
+    setState(prev => ({
+      ...prev,
+      demo_step: 3,
+      demo_status_text: 'STEP 3/3: GROUND UNIT ECHO-4 ON-SCENE // RESCUE COMPLETE & MERKLE SEALED',
+      rescue_team: {
+        ...prev.rescue_team,
+        status: 'VICTIM_SECURED',
+        current_lat: VICTIM_LAT,
+        current_lon: VICTIM_LON,
+        speed_kmh: 0.0,
+        speed_mps: 0.0,
+        distance_to_target_m: 0.0,
+        eta_seconds: 0,
+        eta_formatted: '00:00'
+      },
+      active_incident: prev.active_incident ? {
+        ...prev.active_incident,
+        status: 'RESOLVED'
+      } : null
+    }));
+
+    sendWebSocketMessage({ action: 'DISPATCH_RESCUE', incident_id: 1 });
+    api.dispatchGroundRescue(1).catch(() => {});
+    api.resolveIncident(1).catch(() => {});
+  };
+
+  const computeAndApplyDemoFrame = (elapsedSec) => {
+    if (elapsedSec >= 55.0) {
+      // Final Phase 10 hold
+      setState(prev => ({
+        ...prev,
+        demo_step: 10,
+        demo_status_text: 'STEP 10/10: RESCUE COMPLETE // SHA-256 MERKLE SEALED',
+        uav: {
+          ...prev.uav,
+          status: 'TARGET_LOCKED',
+          current_lat: VICTIM_LAT,
+          current_lon: VICTIM_LON,
+          altitude_agl: 45.0,
+          target_locked: true,
+          target_confidence: 98.2
+        },
+        rescue_team: {
+          ...prev.rescue_team,
+          status: 'VICTIM_SECURED',
+          current_lat: VICTIM_LAT,
+          current_lon: VICTIM_LON,
+          speed_kmh: 0.0,
+          speed_mps: 0.0,
+          distance_to_target_m: 0.0,
+          eta_seconds: 0,
+          eta_formatted: '00:00'
+        },
+        active_incident: prev.active_incident ? {
+          ...prev.active_incident,
+          status: 'RESOLVED'
+        } : null
+      }));
+      clearDemoRunner();
+      return;
+    }
+
+    // Phase 1 (0.0s - 5.5s)
+    if (elapsedSec < 5.5) {
+      setState(prev => ({
+        ...prev,
+        demo_step: 1,
+        demo_status_text: 'STEP 1/10: TOURIST NOMINAL // GAIT TELEMETRY STREAMING',
+        tourist: {
+          ...prev.tourist,
+          threat_level: 'NORMAL',
+          g_force: 1.0,
+          heart_rate: 76,
+          current_lat: VICTIM_LAT,
+          current_lon: VICTIM_LON
+        },
+        uav: {
+          ...prev.uav,
+          status: 'STANDBY',
+          current_lat: PAD_LAT,
+          current_lon: PAD_LON,
+          base_lat: PAD_LAT,
+          base_lon: PAD_LON,
+          altitude_agl: 0.0,
+          airspeed_mps: 0.0,
+          target_locked: false,
+          flight_trail: [[PAD_LAT, PAD_LON]]
+        },
+        rescue_team: {
+          ...prev.rescue_team,
+          status: 'STANDBY',
+          current_lat: OUTPOST_LAT,
+          current_lon: OUTPOST_LON,
+          base_lat: OUTPOST_LAT,
+          base_lon: OUTPOST_LON,
+          speed_kmh: 0.0,
+          speed_mps: 0.0,
+          distance_to_target_m: 650.0,
+          eta_seconds: 0,
+          eta_formatted: '00:00'
+        },
+        comms: {
+          ...prev.comms,
+          channel: 'CELLULAR_4G',
+          status_text: '4G LTE HIGH BANDWIDTH (RELAY DIRECT)'
+        },
+        departmental_dispatches: {
+          ...prev.departmental_dispatches,
+          is_emergency_active: false
+        },
+        active_incident: null
+      }));
+    }
+    // Phase 2 (5.5s - 11.0s)
+    else if (elapsedSec < 11.0) {
+      setState(prev => ({
+        ...prev,
+        demo_step: 2,
+        demo_status_text: 'STEP 2/10: IMPACT DETECTED // 3.8g KINEMATIC SPIKE',
+        tourist: {
+          ...prev.tourist,
+          threat_level: 'WARNING',
+          g_force: 3.8,
+          heart_rate: 142,
+          accel_x: 0.45,
+          accel_y: 2.1,
+          accel_z: 3.8
+        }
+      }));
+    }
+    // Phase 3 (11.0s - 16.5s)
+    else if (elapsedSec < 16.5) {
+      setState(prev => ({
+        ...prev,
+        demo_step: 3,
+        demo_status_text: 'STEP 3/10: IMMOBILITY TRIGGERED // THREAT CRITICAL',
+        tourist: {
+          ...prev.tourist,
+          threat_level: 'CRITICAL',
+          g_force: 0.02,
+          heart_rate: 54,
+          accel_x: 0.01,
+          accel_y: 0.01,
+          accel_z: 0.02
+        }
+      }));
+    }
+    // Phase 4 (16.5s - 22.0s)
+    else if (elapsedSec < 22.0) {
+      setState(prev => ({
+        ...prev,
+        demo_step: 4,
+        demo_status_text: 'STEP 4/10: LKP ENCRYPTED & LOCKED // RADAR BOUNDS ACTIVE',
+        comms: {
+          ...prev.comms,
+          channel: 'LORA_MESH',
+          status_text: '868MHz LoRa TACTICAL MESH (FAILOVER ACTIVE)'
+        },
+        active_incident: {
+          id: 1,
+          incident_number: 'INC-20260826-001',
+          status: 'CONFIRMED',
+          severity: 'CRITICAL',
+          ugid: 'GX-8921-ALPHA',
+          trigger_type: 'FALL_DETECTED',
+          lkp_lat: VICTIM_LAT,
+          lkp_lon: VICTIM_LON,
+          lkp_altitude: 1240.0,
+          created_at: new Date().toLocaleTimeString()
+        }
+      }));
+    }
+    // Phase 5 (22.0s - 27.5s)
+    else if (elapsedSec < 27.5) {
+      setState(prev => ({
+        ...prev,
+        demo_step: 5,
+        demo_status_text: 'STEP 5/10: OASIS CAP v1.2 MULTI-AGENCY DISPATCH',
+        departmental_dispatches: {
+          ...prev.departmental_dispatches,
+          is_emergency_active: true,
+          police: {
+            ...prev.departmental_dispatches?.police,
+            status: 'DISPATCHED',
+            status_label: 'DISPATCHED // PURSUIT VECTOR ACTIVE'
+          },
+          medical: {
+            ...prev.departmental_dispatches?.medical,
+            status: 'ALERTED',
+            status_label: 'HOSPITAL ALERTED // BLOOD MATCHED'
+          },
+          sar: {
+            ...prev.departmental_dispatches?.sar,
+            status: 'STANDBY',
+            status_label: 'OUTPOST STANDBY'
+          }
+        }
+      }));
+    }
+    // Phase 6 (27.5s - 33.0s: Smooth UAV Transit Animation)
+    else if (elapsedSec < 33.0) {
+      const p = Math.min(1.0, (elapsedSec - 27.5) / 5.5);
+      const curUavLat = Number((PAD_LAT + (VICTIM_LAT - PAD_LAT) * p).toFixed(6));
+      const curUavLon = Number((PAD_LON + (VICTIM_LON - PAD_LON) * p).toFixed(6));
+      const curAlt = Math.round(45.0 * Math.min(1.0, p * 1.8));
+
+      setState(prev => ({
+        ...prev,
+        demo_step: 6,
+        demo_status_text: 'STEP 6/10: UAV AIRBORNE // TRANSIT TO LKP',
+        uav: {
+          ...prev.uav,
+          status: 'EN_ROUTE_LKP',
+          current_lat: curUavLat,
+          current_lon: curUavLon,
+          altitude_agl: curAlt,
+          airspeed_mps: 24.0,
+          heading_deg: 214.0,
+          flight_trail: [...(prev.uav.flight_trail || []), [curUavLat, curUavLon]].slice(-35)
+        },
+        active_incident: prev.active_incident ? {
+          ...prev.active_incident,
+          status: 'UAV_DISPATCHED'
+        } : null
+      }));
+    }
+    // Phase 7 (33.0s - 38.5s: ISRID Expanding Square Search)
+    else if (elapsedSec < 38.5) {
+      const p = (elapsedSec - 33.0) / 5.5;
+      const theta = p * Math.PI * 4;
+      const radius = 0.00035 * p;
+      const curUavLat = Number((VICTIM_LAT + radius * Math.sin(theta)).toFixed(6));
+      const curUavLon = Number((VICTIM_LON + radius * Math.cos(theta)).toFixed(6));
+
+      setState(prev => ({
+        ...prev,
+        demo_step: 7,
+        demo_status_text: 'STEP 7/10: ISRID SECTOR SCANNING // EXPANDING SQUARE',
+        uav: {
+          ...prev.uav,
+          status: 'SEARCHING',
+          current_lat: curUavLat,
+          current_lon: curUavLon,
+          altitude_agl: 45.0,
+          airspeed_mps: 14.0,
+          search_progress_pct: Math.round(p * 85.0),
+          flight_trail: [...(prev.uav.flight_trail || []), [curUavLat, curUavLon]].slice(-45)
+        }
+      }));
+    }
+    // Phase 8 (38.5s - 44.0s: FLIR Thermal Target Lock)
+    else if (elapsedSec < 44.0) {
+      setState(prev => ({
+        ...prev,
+        demo_step: 8,
+        demo_status_text: 'STEP 8/10: FLIR THERMAL LOCK // VICTIM ACQUIRED (36.8°C)',
+        uav: {
+          ...prev.uav,
+          status: 'TARGET_LOCKED',
+          current_lat: VICTIM_LAT,
+          current_lon: VICTIM_LON,
+          target_locked: true,
+          target_confidence: 98.2,
+          target_lat: VICTIM_LAT,
+          target_lon: VICTIM_LON,
+          altitude_agl: 45.0,
+          airspeed_mps: 0.0
+        },
+        thermal_vision: {
+          ...prev.thermal_vision,
+          bounding_box: {
+            visible: true,
+            x_pct: 50,
+            y_pct: 48,
+            width_pct: 35,
+            height_pct: 35,
+            label: 'TARGET_LOCKED // VICTIM IDENTIFIED',
+            confidence_pct: 98.2,
+            core_temp_c: 36.8,
+            status: 'LOCKED'
+          }
+        },
+        active_incident: prev.active_incident ? {
+          ...prev.active_incident,
+          status: 'TARGET_LOCKED'
+        } : null
+      }));
+    }
+    // Phase 9 (44.0s - 49.5s: Smooth Ground Team Intercept Animation)
+    else if (elapsedSec < 49.5) {
+      const g = Math.min(1.0, (elapsedSec - 44.0) / 5.5);
+      const curGroundLat = Number((OUTPOST_LAT + (VICTIM_LAT - OUTPOST_LAT) * g).toFixed(6));
+      const curGroundLon = Number((OUTPOST_LON + (VICTIM_LON - OUTPOST_LON) * g).toFixed(6));
+      const distRemaining = Math.round(650.0 * (1.0 - g));
+      const etaSec = Math.max(0, Math.round(30.0 * (1.0 - g)));
+      const etaFormatted = `00:${etaSec < 10 ? '0' : ''}${etaSec}`;
+
+      setState(prev => ({
+        ...prev,
+        demo_step: 9,
+        demo_status_text: 'STEP 9/10: GROUND UNIT ECHO-4 INTERCEPT // ON-SCENE',
+        rescue_team: {
+          ...prev.rescue_team,
+          status: 'EN_ROUTE',
+          current_lat: curGroundLat,
+          current_lon: curGroundLon,
+          speed_kmh: 34.2,
+          speed_mps: 9.5,
+          distance_to_target_m: distRemaining,
+          eta_seconds: etaSec,
+          eta_formatted: etaFormatted
+        },
+        active_incident: prev.active_incident ? {
+          ...prev.active_incident,
+          status: 'RESCUE_EN_ROUTE'
+        } : null
+      }));
+    }
+    // Phase 10 (49.5s - 55.0s: Rescue Complete & Sealed)
+    else {
+      setState(prev => ({
+        ...prev,
+        demo_step: 10,
+        demo_status_text: 'STEP 10/10: RESCUE COMPLETE // SHA-256 MERKLE SEALED',
+        rescue_team: {
+          ...prev.rescue_team,
+          status: 'VICTIM_SECURED',
+          current_lat: VICTIM_LAT,
+          current_lon: VICTIM_LON,
+          speed_kmh: 0.0,
+          speed_mps: 0.0,
+          distance_to_target_m: 0.0,
+          eta_seconds: 0,
+          eta_formatted: '00:00'
+        },
+        active_incident: prev.active_incident ? {
+          ...prev.active_incident,
+          status: 'RESOLVED'
+        } : null
+      }));
     }
   };
 
-  const resetSystem = async () => {
-    sendWebSocketMessage({ action: 'RESET_SYSTEM' });
-    try {
-      await api.resetSystemDemo();
-    } catch (e) {
-      console.error(e);
+  const startDemo = () => {
+    clearDemoRunner();
+    isDemoRunningRef.current = true;
+    demoElapsedOffsetRef.current = 0;
+    demoStartTimeRef.current = Date.now();
+    setIsDemoRunning(true);
+    setIsDemoPaused(false);
+
+    // Trigger backend demo logging in background without blocking
+    sendWebSocketMessage({ action: 'START_DEMO' });
+    api.startFullDemo().catch(() => {});
+
+    demoIntervalRef.current = setInterval(() => {
+      const elapsedMs = Date.now() - demoStartTimeRef.current + demoElapsedOffsetRef.current;
+      const elapsedSec = elapsedMs / 1000.0;
+      computeAndApplyDemoFrame(elapsedSec);
+    }, 100);
+  };
+
+  const pauseDemo = () => {
+    if (!isDemoRunningRef.current || isDemoPaused) return;
+    if (demoIntervalRef.current) {
+      clearInterval(demoIntervalRef.current);
+      demoIntervalRef.current = null;
     }
+    demoElapsedOffsetRef.current += (Date.now() - demoStartTimeRef.current);
+    setIsDemoPaused(true);
+  };
+
+  const resumeDemo = () => {
+    if (!isDemoRunningRef.current || !isDemoPaused) return;
+    demoStartTimeRef.current = Date.now();
+    setIsDemoPaused(false);
+
+    demoIntervalRef.current = setInterval(() => {
+      const elapsedMs = Date.now() - demoStartTimeRef.current + demoElapsedOffsetRef.current;
+      const elapsedSec = elapsedMs / 1000.0;
+      computeAndApplyDemoFrame(elapsedSec);
+    }, 100);
+  };
+
+  const jumpToPhase = (phaseNum) => {
+    const clampedPhase = Math.max(1, Math.min(10, phaseNum));
+    const targetElapsedSec = (clampedPhase - 1) * 5.5 + 0.1;
+    
+    if (isDemoRunningRef.current && !isDemoPaused) {
+      demoStartTimeRef.current = Date.now();
+      demoElapsedOffsetRef.current = targetElapsedSec * 1000.0;
+    } else {
+      isDemoRunningRef.current = true;
+      demoElapsedOffsetRef.current = targetElapsedSec * 1000.0;
+      setIsDemoRunning(true);
+      setIsDemoPaused(true); // stay paused on manual step
+    }
+    
+    computeAndApplyDemoFrame(targetElapsedSec);
+  };
+
+  const stepNextDemo = () => {
+    const currentPhase = state.demo_step || 1;
+    jumpToPhase(Math.min(10, currentPhase + 1));
+  };
+
+  const stepPrevDemo = () => {
+    const currentPhase = state.demo_step || 1;
+    jumpToPhase(Math.max(1, currentPhase - 1));
+  };
+
+  const resetSystem = () => {
+    clearDemoRunner();
+
+    setState(prev => ({
+      ...prev,
+      demo_step: 0,
+      demo_status_text: 'SYSTEM READY // NORMAL MONITORING',
+      tourist: {
+        ...prev.tourist,
+        threat_level: 'NORMAL',
+        g_force: 1.0,
+        heart_rate: 76,
+        battery_pct: 94,
+        current_lat: VICTIM_LAT,
+        current_lon: VICTIM_LON
+      },
+      comms: {
+        ...prev.comms,
+        channel: 'CELLULAR_4G',
+        status_text: '4G LTE HIGH BANDWIDTH (RELAY DIRECT)'
+      },
+      uav: {
+        ...prev.uav,
+        status: 'STANDBY',
+        current_lat: PAD_LAT,
+        current_lon: PAD_LON,
+        base_lat: PAD_LAT,
+        base_lon: PAD_LON,
+        altitude_agl: 0.0,
+        airspeed_mps: 0.0,
+        target_locked: false,
+        target_confidence: 0.0,
+        flight_trail: [[PAD_LAT, PAD_LON]]
+      },
+      rescue_team: {
+        ...prev.rescue_team,
+        status: 'STANDBY',
+        current_lat: OUTPOST_LAT,
+        current_lon: OUTPOST_LON,
+        base_lat: OUTPOST_LAT,
+        base_lon: OUTPOST_LON,
+        speed_kmh: 0.0,
+        speed_mps: 0.0,
+        distance_to_target_m: 650.0,
+        eta_seconds: 0,
+        eta_formatted: '00:00'
+      },
+      thermal_vision: {
+        ...prev.thermal_vision,
+        bounding_box: {
+          visible: false,
+          x_pct: 50,
+          y_pct: 50,
+          width_pct: 0,
+          height_pct: 0,
+          label: 'STANDBY',
+          confidence_pct: 0,
+          core_temp_c: 14.5,
+          status: 'IDLE'
+        }
+      },
+      departmental_dispatches: {
+        ...prev.departmental_dispatches,
+        is_emergency_active: false
+      },
+      active_incident: null
+    }));
+
+    sendWebSocketMessage({ action: 'RESET_SYSTEM' });
+    api.resetSystemDemo().catch(() => {});
   };
 
   const sendUavCommand = (action, customPayload = {}) => {
-    const lkpLat = customPayload.lat || state.active_incident?.lkp_lat || state.tourist?.current_lat || 37.7420;
-    const lkpLng = customPayload.lon || customPayload.lng || state.active_incident?.lkp_lon || state.tourist?.current_lon || -119.5975;
+    const victimLat = customPayload.lat || state.active_incident?.lkp_lat || state.tourist?.current_lat || 11.3995;
+    const victimLng = customPayload.lon || customPayload.lng || state.active_incident?.lkp_lon || state.tourist?.current_lon || 78.1614;
     
+    const padLat = Number((victimLat + 0.0035).toFixed(6));
+    const padLng = Number((victimLng + 0.0025).toFixed(6));
+
     const payload = {
       type: 'UAV_COMMAND',
       action,
       target_ugid: selectedUgid || 'GX-8921-ALPHA',
       incident_id: customPayload.incident_id || state.active_incident?.id,
+      base_pad: {
+        lat: padLat,
+        lng: padLng
+      },
       lkp: {
-        lat: lkpLat,
-        lng: lkpLng
+        lat: victimLat,
+        lng: victimLng
       },
       ...customPayload
     };
@@ -567,12 +1219,25 @@ export function SystemProvider({ children }) {
         setSelectedDroneId,
         isConnected,
         isOnline,
+        isDemoRunning,
+        isDemoPaused,
+        demoPhase: state.demo_step,
+        demoStep: state.demo_step,
+        manualStep: state.demo_step,
+        triggerManualStep1_SOS,
+        triggerManualStep2_UAVSearch,
+        triggerManualStep3_GroundRescue,
         offlineQueueLength: offlineQueue.length,
         flushOfflineQueue,
         accelHistory,
         triggerSim,
         sendLiveSensorData,
         startDemo,
+        pauseDemo,
+        resumeDemo,
+        jumpToPhase,
+        stepNextDemo,
+        stepPrevDemo,
         resetSystem,
         sendUavCommand,
         dispatchUav,
@@ -582,6 +1247,8 @@ export function SystemProvider({ children }) {
         returnUavToBase,
         resetUav,
         dispatchRescue,
+        dispatchGroundRescue: dispatchRescue,
+        forceGroundDispatch: dispatchRescue,
         resolveIncident
       }}
     >

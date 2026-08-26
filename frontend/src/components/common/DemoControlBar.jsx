@@ -1,90 +1,107 @@
 import React from 'react';
 import { useSystem } from '../../context/SystemContext';
-import { Play, RotateCcw, Activity, ShieldAlert, Crosshair, Truck, CheckCircle2 } from 'lucide-react';
+import { ShieldAlert, Crosshair, Truck, RotateCcw, Play, CheckCircle2, Activity } from 'lucide-react';
 import DroneIcon from './DroneIcon';
 
 export default function DemoControlBar({ compact = false }) {
-  const { demo_step, demo_status_text, startDemo, resetSystem } = useSystem();
+  const { 
+    demo_step, 
+    demo_status_text, 
+    triggerManualStep1_SOS,
+    triggerManualStep2_UAVSearch,
+    triggerManualStep3_GroundRescue,
+    resetSystem,
+    startDemo,
+    isDemoRunning
+  } = useSystem();
 
-  const steps = [
-    { step: 1, label: '1. Normal' },
-    { step: 2, label: '2. Fall Impact' },
-    { step: 3, label: '3. Immobility' },
-    { step: 4, label: '4. UGID & LoRa' },
-    { step: 5, label: '5. Tactical Triage' },
-    { step: 6, label: '6. UAV En Route' },
-    { step: 7, label: '7. Search Grid' },
-    { step: 8, label: '8. FLIR Lock' },
-    { step: 9, label: '9. Ground Rescue' },
-    { step: 10, label: '10. Resolved' }
-  ];
-
-  const isDemoRunning = demo_step > 0 && demo_step < 10;
+  const isStep1Active = demo_step === 1 || demo_step === 2 || demo_step === 3 || demo_step === 4 || demo_step === 5;
+  const isStep2Active = demo_step === 6 || demo_step === 7 || demo_step === 8;
+  const isStep3Active = demo_step === 9 || demo_step === 10;
 
   return (
-    <div className="bg-tactical-darkest/95 border-b border-tactical-border/80 px-4 py-2 flex flex-col md:flex-row items-center justify-between gap-3 select-none">
-      {/* Action Buttons */}
-      <div className="flex items-center gap-2 w-full md:w-auto">
+    <div className="bg-tactical-darkest/95 border-b border-tactical-border/80 px-4 py-2.5 flex flex-col lg:flex-row items-center justify-between gap-3 select-none">
+      {/* 3-Step Clean Manual Jury Control Buttons */}
+      <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+        <span className="hidden sm:inline-block text-[10px] font-mono font-bold text-tactical-muted uppercase tracking-wider mr-1">
+          JURY DEMO:
+        </span>
+
+        {/* Step 1: Trigger Fall / SOS */}
         <button
-          onClick={startDemo}
-          className={`flex items-center justify-center gap-2 px-4 py-2 rounded font-mono font-black text-xs uppercase tracking-wider transition-all duration-300 ${
-            isDemoRunning
-              ? 'bg-rose-600 text-white animate-pulse shadow-crimson-glow border border-rose-400'
-              : 'bg-tactical-cyan hover:bg-cyan-400 text-black shadow-cyan-glow hover:shadow-cyan-glow border border-cyan-200'
+          onClick={triggerManualStep1_SOS}
+          className={`flex items-center gap-2 px-3.5 py-1.5 rounded font-mono font-black text-xs uppercase tracking-wider transition-all duration-200 border cursor-pointer ${
+            isStep1Active && !isStep2Active && !isStep3Active
+              ? 'bg-rose-600 text-white border-rose-400 shadow-[0_0_12px_rgba(244,63,94,0.6)] animate-pulse'
+              : 'bg-rose-950/40 hover:bg-rose-900/60 text-rose-300 hover:text-white border-rose-700/60 hover:border-rose-500'
           }`}
+          title="Step 1: Simulate 3.8g impact spike, lock Last Known Position (LKP) at victim GPS coordinates, and activate multi-agency emergency alert."
         >
-          <Play className="w-4 h-4 fill-current" />
-          {isDemoRunning ? 'RESCUE DEMO IN PROGRESS...' : 'RUN FULL RESCUE DEMO'}
+          <ShieldAlert className="w-4 h-4 text-rose-400" />
+          <span>1. TRIGGER SOS / FALL</span>
         </button>
 
+        {/* Step 2: Launch UAV Search */}
+        <button
+          onClick={triggerManualStep2_UAVSearch}
+          className={`flex items-center gap-2 px-3.5 py-1.5 rounded font-mono font-black text-xs uppercase tracking-wider transition-all duration-200 border cursor-pointer ${
+            isStep2Active
+              ? 'bg-cyan-600 text-white border-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.7)] animate-pulse'
+              : 'bg-cyan-950/40 hover:bg-cyan-900/60 text-cyan-300 hover:text-white border-cyan-700/60 hover:border-cyan-500'
+          }`}
+          title="Step 2: Dispatch UAV from Base Pad directly to LKP coordinates and lock FLIR thermal target crosshairs (36.8°C core body heat)."
+        >
+          <Crosshair className="w-4 h-4 text-cyan-400" />
+          <span>2. LAUNCH UAV SEARCH</span>
+        </button>
+
+        {/* Step 3: Dispatch Ground Unit */}
+        <button
+          onClick={triggerManualStep3_GroundRescue}
+          className={`flex items-center gap-2 px-3.5 py-1.5 rounded font-mono font-black text-xs uppercase tracking-wider transition-all duration-200 border cursor-pointer ${
+            isStep3Active
+              ? 'bg-emerald-600 text-white border-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.7)]'
+              : 'bg-emerald-950/40 hover:bg-emerald-900/60 text-emerald-300 hover:text-white border-emerald-700/60 hover:border-emerald-500'
+          }`}
+          title="Step 3: Route Ground Tactical Unit Echo-4 to victim LKP, mark incident as RESOLVED, and seal SHA-256 Merkle ledger hash."
+        >
+          <Truck className="w-4 h-4 text-emerald-400" />
+          <span>3. DISPATCH GROUND UNIT</span>
+        </button>
+
+        {/* Reset Button */}
         <button
           onClick={resetSystem}
-          className="flex items-center gap-1.5 px-3 py-2 rounded bg-tactical-card hover:bg-tactical-cardHover text-slate-300 hover:text-white border border-tactical-border text-xs font-mono font-bold tracking-wider transition-all"
-          title="Reset to baseline monitoring state"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded bg-tactical-card hover:bg-tactical-cardHover text-slate-300 hover:text-white border border-tactical-border text-xs font-mono font-bold tracking-wider transition-all ml-1 cursor-pointer"
+          title="Reset complete system to nominal baseline state"
         >
           <RotateCcw className="w-3.5 h-3.5" />
-          RESET
+          <span>RESET</span>
         </button>
       </div>
 
-      {/* Step Status Readout */}
-      <div className="flex-1 w-full md:w-auto flex flex-col justify-center">
-        <div className="flex items-center justify-between gap-2 mb-1 text-[11px] font-mono">
-          <span className="text-tactical-cyan font-bold tracking-wide flex items-center gap-1.5 truncate">
-            <span className="w-1.5 h-1.5 rounded-full bg-tactical-cyan animate-ping" />
-            {demo_status_text}
-          </span>
-          <span className="text-tactical-muted font-mono shrink-0">
-            PHASE {demo_step}/10
+      {/* Live Active Status Readout Badge */}
+      <div className="flex items-center gap-3 w-full lg:w-auto justify-end">
+        <div className="bg-tactical-card/90 border border-tactical-border px-3 py-1.5 rounded flex items-center gap-2 max-w-full truncate">
+          <span className="w-2 h-2 rounded-full bg-tactical-cyan animate-ping shrink-0" />
+          <span className="text-[11px] font-mono text-tactical-cyan font-bold truncate">
+            {demo_status_text || 'SYSTEM READY // NOMINAL MONITORING'}
           </span>
         </div>
 
-        {/* 10-Step Visual Flow */}
-        <div className="grid grid-cols-10 gap-1 w-full">
-          {steps.map(s => {
-            const isCompleted = demo_step > s.step || demo_step === 10;
-            const isCurrent = demo_step === s.step;
-            return (
-              <div
-                key={s.step}
-                className={`h-2 rounded-xs transition-all duration-300 relative group cursor-default ${
-                  isCurrent
-                    ? 'bg-tactical-cyan shadow-cyan-glow animate-pulse'
-                    : isCompleted
-                    ? 'bg-emerald-500'
-                    : 'bg-tactical-border/60'
-                }`}
-                title={s.label}
-              >
-                {!compact && (
-                  <div className="hidden lg:block absolute -bottom-4 left-0 text-[8px] font-mono text-tactical-muted whitespace-nowrap overflow-hidden text-ellipsis max-w-[60px]">
-                    {s.label}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+        {/* Optional 10-Phase Auto Demo button */}
+        <button
+          onClick={startDemo}
+          className={`hidden xl:flex items-center gap-1 px-2.5 py-1.5 rounded border text-[10px] font-mono font-bold tracking-wider transition-all cursor-pointer ${
+            isDemoRunning
+              ? 'bg-amber-600/80 text-white border-amber-400 animate-pulse'
+              : 'bg-tactical-card hover:bg-tactical-cardHover text-slate-400 hover:text-slate-200 border-tactical-border'
+          }`}
+          title="Auto-run complete 10-phase sequence (55s)"
+        >
+          <Play className="w-3 h-3 fill-current" />
+          <span>{isDemoRunning ? 'AUTO DEMO...' : 'AUTO 55s'}</span>
+        </button>
       </div>
     </div>
   );
