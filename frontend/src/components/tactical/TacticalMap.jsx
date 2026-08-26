@@ -3,22 +3,41 @@ import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, Polygon, useM
 import L from 'leaflet';
 import { useSystem } from '../../context/SystemContext';
 
-// Helper component to smoothly center/pan map on active incident or selected tourist
+// Helper component to smoothly center/pan map on state transitions only (preventing animation queue overflows)
 function MapController({ targetPos, isEmergency, uavPos, isUavFlying }) {
   const map = useMap();
+  const lastStateKeyRef = React.useRef('');
+  const lastTargetPosRef = React.useRef(null);
+
   useEffect(() => {
-    if (targetPos && isEmergency && uavPos && isUavFlying && targetPos[0] && uavPos[0]) {
-      const validPoints = [targetPos, uavPos].filter(
-        pt => pt && pt[0] <= 30 && pt[1] >= 0 && Math.abs(pt[0] - targetPos[0]) < 0.02 && Math.abs(pt[1] - targetPos[1]) < 0.02
-      );
-      if (validPoints.length >= 2) {
-        const bounds = L.latLngBounds(validPoints);
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16, animate: true, duration: 0.8 });
+    if (!targetPos || !targetPos[0] || !targetPos[1]) return;
+
+    const stateKey = `${isEmergency ? 'EMG' : 'NORM'}_${isUavFlying ? 'FLY' : 'PAD'}_${targetPos[0].toFixed(3)}_${targetPos[1].toFixed(3)}`;
+    
+    // Only re-fit or re-center if emergency/flight status changes or target moves > 500m
+    const hasTargetShifted = !lastTargetPosRef.current ||
+      Math.abs(lastTargetPosRef.current[0] - targetPos[0]) > 0.005 ||
+      Math.abs(lastTargetPosRef.current[1] - targetPos[1]) > 0.005;
+
+    if (lastStateKeyRef.current !== stateKey || hasTargetShifted) {
+      lastStateKeyRef.current = stateKey;
+      lastTargetPosRef.current = targetPos;
+
+      if (isEmergency && isUavFlying && uavPos && uavPos[0]) {
+        const validPoints = [targetPos, uavPos].filter(
+          pt => pt && pt[0] <= 30 && pt[1] >= 0 && Math.abs(pt[0] - targetPos[0]) < 0.02 && Math.abs(pt[1] - targetPos[1]) < 0.02
+        );
+        if (validPoints.length >= 2) {
+          const bounds = L.latLngBounds(validPoints);
+          map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16, animate: false });
+          return;
+        }
       }
-    } else if (targetPos && targetPos[0] && targetPos[1] && targetPos[0] <= 30 && targetPos[1] >= 0) {
-      map.setView(targetPos, isEmergency ? 16 : 15, { animate: true, duration: 0.8 });
+
+      map.setView(targetPos, isEmergency ? 16 : 15, { animate: false });
     }
-  }, [targetPos?.[0], targetPos?.[1], uavPos?.[0], uavPos?.[1], isEmergency, isUavFlying, map]);
+  }, [targetPos?.[0], targetPos?.[1], isEmergency, isUavFlying, map]);
+
   return null;
 }
 

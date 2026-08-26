@@ -34,13 +34,16 @@ function createSelfIcon(threatLevel) {
   });
 }
 
-function ExploreMapController({ center }) {
+function ExploreMapController({ centerLat, centerLon }) {
   const map = useMap();
+  const lastCenterRef = React.useRef(null);
+
   useEffect(() => {
-    if (center && center[0] && center[1]) {
-      map.setView(center, 14, { animate: true });
+    if (centerLat && centerLon && (!lastCenterRef.current || Math.abs(lastCenterRef.current[0] - centerLat) > 0.002 || Math.abs(lastCenterRef.current[1] - centerLon) > 0.002)) {
+      lastCenterRef.current = [centerLat, centerLon];
+      map.setView([centerLat, centerLon], 14, { animate: false });
     }
-  }, [center, map]);
+  }, [centerLat, centerLon, map]);
   return null;
 }
 
@@ -84,14 +87,14 @@ export default function ExploreScreen() {
         <div className="absolute bottom-1.5 right-1.5 w-4 h-4 border-r-2 border-b-2 border-tactical-cyan/60 z-10 pointer-events-none" />
 
         <MapContainer
-          center={[tourist.current_lat, tourist.current_lon]}
+          center={[tourist.current_lat || 11.3831, tourist.current_lon || 78.1626]}
           zoom={14}
           scrollWheelZoom={false}
           zoomControl={false}
           className="w-full h-full"
           attributionControl={false}
         >
-          <ExploreMapController center={[tourist.current_lat, tourist.current_lon]} />
+          <ExploreMapController centerLat={tourist.current_lat} centerLon={tourist.current_lon} />
           <TileLayer url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png" maxZoom={19} />
 
           {/* Safe zone */}

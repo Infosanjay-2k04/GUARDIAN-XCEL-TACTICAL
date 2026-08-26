@@ -3,23 +3,35 @@ import { MapContainer, TileLayer, Marker, Popup, Circle, Polyline, Polygon, useM
 import L from 'leaflet';
 import { useSystem } from '../../context/SystemContext';
 
-// Helper component to auto-fit Base Pad, UAV, Rescue Team and Victim in viewport within 2km boundary
+// Helper component to auto-fit Base Pad, UAV, Rescue Team and Victim on state transitions only
 function DroneMapController({ uavPos, lkpPos, basePadPos, rescuePos, isFlying, isRescueActive }) {
   const map = useMap();
+  const lastStateKeyRef = React.useRef('');
+
   useEffect(() => {
-    if (basePadPos && lkpPos && (isFlying || isRescueActive) && basePadPos[0] && lkpPos[0]) {
-      // Ensure only valid local points within 2km are bounded
-      const validPoints = [basePadPos, lkpPos, uavPos, rescuePos].filter(
-        pt => pt && pt[0] <= 30 && pt[1] >= 0 && Math.abs(pt[0] - lkpPos[0]) < 0.02 && Math.abs(pt[1] - lkpPos[1]) < 0.02
-      );
-      if (validPoints.length >= 2) {
-        const bounds = L.latLngBounds(validPoints);
-        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 17, animate: true, duration: 0.8 });
+    if (!lkpPos || !basePadPos || !lkpPos[0] || !basePadPos[0]) return;
+
+    const stateKey = `${isFlying ? 'FLY' : 'PAD'}_${isRescueActive ? 'RSC' : 'STN'}_${lkpPos[0].toFixed(3)}_${lkpPos[1].toFixed(3)}`;
+
+    if (lastStateKeyRef.current !== stateKey) {
+      lastStateKeyRef.current = stateKey;
+
+      if (isFlying || isRescueActive) {
+        // Ensure only valid local points within 2km are bounded
+        const validPoints = [basePadPos, lkpPos, uavPos, rescuePos].filter(
+          pt => pt && pt[0] <= 30 && pt[1] >= 0 && Math.abs(pt[0] - lkpPos[0]) < 0.02 && Math.abs(pt[1] - lkpPos[1]) < 0.02
+        );
+        if (validPoints.length >= 2) {
+          const bounds = L.latLngBounds(validPoints);
+          map.fitBounds(bounds, { padding: [50, 50], maxZoom: 17, animate: false });
+          return;
+        }
       }
-    } else if (lkpPos && lkpPos[0] && lkpPos[1] && lkpPos[0] <= 30 && lkpPos[1] >= 0) {
-      map.setView(lkpPos, 16, { animate: true, duration: 0.8 });
+
+      map.setView(lkpPos, 16, { animate: false });
     }
   }, [lkpPos?.[0], lkpPos?.[1], basePadPos?.[0], basePadPos?.[1], isFlying, isRescueActive, map]);
+
   return null;
 }
 

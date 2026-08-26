@@ -359,6 +359,51 @@ export function SystemProvider({ children }) {
 
   useEffect(() => {
     let reconnectTimeout = null;
+    let lastDispatchTime = 0;
+    let pendingPacket = null;
+    let throttleTimeout = null;
+
+    const processIncomingState = (data) => {
+      if (data.type === 'STATE_UPDATE') {
+        setState(prev => ({
+          ...prev,
+          tourist: data.tourist || prev.tourist,
+          tourists_list: data.tourists_list || prev.tourists_list,
+          tourist_stats: data.tourist_stats || prev.tourist_stats,
+          uav: isDemoRunningRef.current ? prev.uav : (data.uav || prev.uav),
+          uav_fleet: data.uav_fleet || prev.uav_fleet,
+          rescue_team: isDemoRunningRef.current ? prev.rescue_team : (data.rescue_team || prev.rescue_team),
+          thermal_vision: isDemoRunningRef.current ? prev.thermal_vision : (data.thermal_vision || prev.thermal_vision),
+          comms: data.comms || prev.comms,
+          active_incident: isDemoRunningRef.current ? prev.active_incident : data.active_incident,
+          departmental_dispatches: data.departmental_dispatches || prev.departmental_dispatches,
+          forensic_ledger: data.forensic_ledger || prev.forensic_ledger,
+          forensic_audit: data.forensic_audit || prev.forensic_audit,
+          terrain_profile: data.terrain_profile || prev.terrain_profile,
+          recent_events: data.recent_events || prev.recent_events,
+          demo_step: isDemoRunningRef.current ? prev.demo_step : data.demo_step,
+          demo_status_text: isDemoRunningRef.current ? prev.demo_status_text : data.demo_status_text,
+          geofence_safe: data.geofence_safe || prev.geofence_safe,
+          geofence_hazard: data.geofence_hazard || prev.geofence_hazard,
+          landmarks: data.landmarks || prev.landmarks
+        }));
+
+        // Append to waveform history
+        if (data.tourist) {
+          setAccelHistory(prev => {
+            const updated = [...prev, {
+              x: data.tourist.accel_x,
+              y: data.tourist.accel_y,
+              z: data.tourist.accel_z,
+              g: data.tourist.g_force,
+              hr: data.tourist.heart_rate,
+              time: Date.now()
+            }];
+            return updated.slice(-35); // Keep last 35 points
+          });
+        }
+      }
+    };
 
     function connectWebSocket() {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -379,44 +424,22 @@ export function SystemProvider({ children }) {
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.type === 'STATE_UPDATE') {
-            setState(prev => ({
-              ...prev,
-              tourist: data.tourist || prev.tourist,
-              tourists_list: data.tourists_list || prev.tourists_list,
-              tourist_stats: data.tourist_stats || prev.tourist_stats,
-              uav: data.uav || prev.uav,
-              uav_fleet: data.uav_fleet || prev.uav_fleet,
-              rescue_team: data.rescue_team || prev.rescue_team,
-              thermal_vision: data.thermal_vision || prev.thermal_vision,
-              comms: data.comms || prev.comms,
-              active_incident: data.active_incident,
-              departmental_dispatches: data.departmental_dispatches || prev.departmental_dispatches,
-              forensic_ledger: data.forensic_ledger || prev.forensic_ledger,
-              forensic_audit: data.forensic_audit || prev.forensic_audit,
-              terrain_profile: data.terrain_profile || prev.terrain_profile,
-              recent_events: data.recent_events || prev.recent_events,
-              demo_step: isDemoRunningRef.current ? prev.demo_step : data.demo_step,
-              demo_status_text: isDemoRunningRef.current ? prev.demo_status_text : data.demo_status_text,
-              geofence_safe: data.geofence_safe || prev.geofence_safe,
-              geofence_hazard: data.geofence_hazard || prev.geofence_hazard,
-              landmarks: data.landmarks || prev.landmarks
-            }));
+          const now = Date.now();
+          pendingPacket = data;
 
-            // Append to waveform history
-            if (data.tourist) {
-              setAccelHistory(prev => {
-                const updated = [...prev, {
-                  x: data.tourist.accel_x,
-                  y: data.tourist.accel_y,
-                  z: data.tourist.accel_z,
-                  g: data.tourist.g_force,
-                  hr: data.tourist.heart_rate,
-                  time: Date.now()
-                }];
-                return updated.slice(-35); // Keep last 35 points
-              });
+          if (now - lastDispatchTime >= 100) {
+            if (throttleTimeout) {
+              clearTimeout(throttleTimeout);
+              throttleTimeout = null;
             }
+            lastDispatchTime = now;
+            processIncomingState(pendingPacket);
+          } else if (!throttleTimeout) {
+            throttleTimeout = setTimeout(() => {
+              throttleTimeout = null;
+              lastDispatchTime = Date.now();
+              if (pendingPacket) processIncomingState(pendingPacket);
+            }, 100 - (now - lastDispatchTime));
           }
         } catch (err) {
           console.error('[SystemWS] Parse error', err);
@@ -440,6 +463,7 @@ export function SystemProvider({ children }) {
     return () => {
       if (wsRef.current) wsRef.current.close();
       if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      if (throttleTimeout) clearTimeout(throttleTimeout);
     };
   }, []);
 

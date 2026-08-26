@@ -7,6 +7,11 @@ export default function MAVLinkSerialViewer() {
   const [isPaused, setIsPaused] = useState(false);
   const [frames, setFrames] = useState([]);
   const [copied, setCopied] = useState(false);
+  const uavRef = React.useRef(uav);
+
+  useEffect(() => {
+    uavRef.current = uav;
+  }, [uav]);
 
   useEffect(() => {
     if (isPaused) return;
@@ -14,26 +19,27 @@ export default function MAVLinkSerialViewer() {
     const interval = setInterval(() => {
       const now = new Date();
       const timeStr = now.toLocaleTimeString() + '.' + String(now.getMilliseconds()).padStart(3, '0');
-      const mav = uav.mavlink || {};
+      const currentUav = uavRef.current || {};
+      const mav = currentUav.mavlink || {};
 
       const packetTypes = [
         {
           name: 'SYS_STATUS',
           id: 1,
           len: 31,
-          hex: `FD 1F 00 00 01 01 01 ${Math.round(mav.SYS_STATUS?.voltage_battery * 100 || 2400).toString(16).padStart(4, '0')} ${Math.round(mav.SYS_STATUS?.current_battery * 10 || 150).toString(16).padStart(4, '0')} ${Math.round(uav.battery_pct || 98).toString(16).padStart(2, '0')} 00 00`
+          hex: `FD 1F 00 00 01 01 01 ${Math.round(mav.SYS_STATUS?.voltage_battery * 100 || 2400).toString(16).padStart(4, '0')} ${Math.round(mav.SYS_STATUS?.current_battery * 10 || 150).toString(16).padStart(4, '0')} ${Math.round(currentUav.battery_pct || 98).toString(16).padStart(2, '0')} 00 00`
         },
         {
           name: 'ATTITUDE',
           id: 30,
           len: 28,
-          hex: `FD 1C 00 00 01 01 1E ${(Math.round((uav.roll_deg || 0) * 100) & 0xFFFF).toString(16).padStart(4, '0')} ${(Math.round((uav.pitch_deg || 0) * 100) & 0xFFFF).toString(16).padStart(4, '0')} ${(Math.round((uav.heading_deg || 0) * 100) & 0xFFFF).toString(16).padStart(4, '0')}`
+          hex: `FD 1C 00 00 01 01 1E ${(Math.round((currentUav.roll_deg || 0) * 100) & 0xFFFF).toString(16).padStart(4, '0')} ${(Math.round((currentUav.pitch_deg || 0) * 100) & 0xFFFF).toString(16).padStart(4, '0')} ${(Math.round((currentUav.heading_deg || 0) * 100) & 0xFFFF).toString(16).padStart(4, '0')}`
         },
         {
           name: 'GLOBAL_POSITION_INT',
           id: 33,
           len: 28,
-          hex: `FD 1C 00 00 01 01 21 ${(Math.round(uav.current_lat * 1e5) & 0xFFFFFFFF).toString(16).padStart(8, '0')} ${(Math.round(Math.abs(uav.current_lon) * 1e5) & 0xFFFFFFFF).toString(16).padStart(8, '0')} ${Math.round(uav.altitude_agl * 1000).toString(16).padStart(4, '0')}`
+          hex: `FD 1C 00 00 01 01 21 ${(Math.round((currentUav.current_lat || 11.3866) * 1e5) & 0xFFFFFFFF).toString(16).padStart(8, '0')} ${(Math.round(Math.abs(currentUav.current_lon || 78.1651) * 1e5) & 0xFFFFFFFF).toString(16).padStart(8, '0')} ${Math.round((currentUav.altitude_agl || 0) * 1000).toString(16).padStart(4, '0')}`
         },
         {
           name: 'MAV_CMD_NAV_WAYPOINT',
@@ -54,7 +60,7 @@ export default function MAVLinkSerialViewer() {
     }, 450);
 
     return () => clearInterval(interval);
-  }, [isPaused, uav]);
+  }, [isPaused]);
 
   const handleCopy = () => {
     const text = frames.map(f => `[${f.timestamp}] MAVLINK_MSG_ID_${f.name} (len=${f.len}) -> ${f.hex}`).join('\n');

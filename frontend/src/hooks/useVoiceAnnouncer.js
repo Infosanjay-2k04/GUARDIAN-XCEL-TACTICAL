@@ -1,4 +1,4 @@
-﻿import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 /**
  * Passive Voice Announcer Hook
@@ -6,10 +6,14 @@
  * Never modifies state or alters timing.
  */
 export const useVoiceAnnouncer = (demoPhase, threatLevel, isMuted = false) => {
+  const lastAnnouncedPhaseRef = useRef(null);
+
   useEffect(() => {
     if (isMuted || typeof window === 'undefined' || !window.speechSynthesis) return;
+    if (!demoPhase || lastAnnouncedPhaseRef.current === demoPhase) return;
 
     const announcements = {
+      1: "Tourist nominal. Baseline telemetry streaming.",
       2: "Alert: High-G impact detected on unit Alpha.",
       3: "Warning: Tourist immobility threshold exceeded. Threat level Critical.",
       4: "Last Known Position locked. Initializing search boundary.",
@@ -20,13 +24,18 @@ export const useVoiceAnnouncer = (demoPhase, threatLevel, isMuted = false) => {
     };
 
     if (announcements[demoPhase]) {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(announcements[demoPhase]);
-      utterance.rate = 1.05;
-      utterance.pitch = 0.9;
-      window.speechSynthesis.speak(utterance);
+      lastAnnouncedPhaseRef.current = demoPhase;
+      try {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(announcements[demoPhase]);
+        utterance.rate = 1.05;
+        utterance.pitch = 0.9;
+        window.speechSynthesis.speak(utterance);
+      } catch (err) {
+        console.warn('[VoiceAnnouncer] Speech error:', err);
+      }
     }
-  }, [demoPhase, threatLevel, isMuted]);
+  }, [demoPhase, isMuted]);
 };
 
 export default useVoiceAnnouncer;
